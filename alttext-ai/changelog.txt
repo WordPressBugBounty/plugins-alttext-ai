@@ -1,0 +1,121 @@
+*** AltText.ai Changelog ***
+
+2024-09-16 - version 1.8.5
+* Handle refresh for WooCommerce product posts.
+
+2024-09-06 - version 1.8.4
+* Handle silent activation
+
+2024-09-04 - version 1.8.3
+* Fix global CSS
+
+2024-08-27 - version 1.8.2
+* Fix keyword check on post refresh
+
+2024-08-17 - version 1.8.1
+* Support Yoast SEO Premium
+
+2024-08-17 - version 1.8.0
+* Support Woo marketplace
+
+2024-08-15 - version 1.7.4
+* Support relative image paths in refresh.
+
+2024-08-09 - version 1.7.3
+* Fix bulk generate array key warnings.
+
+2024-08-05 - version 1.7.2
+* Add post-activation notice.
+
+2024-08-04 - version 1.7.1
+* Fix bug with Refresh post keywords
+
+2024-07-31 - version 1.7.0
+* WooCommerce bulk update filters
+
+2024-07-25 - version 1.6.9
+* Linting for WooCommerce
+
+2024-07-23 - version 1.6.8
+* Add changelog.txt
+
+2024-07-19 - version 1.6.7
+* Add option to skip file not found.
+
+2024-07-05 - version 1.6.6
+* Remove system log info for now. WP 6.6 compatibility.
+
+2024-07-01 - version 1.6.5
+* Fix issue with template extensions.
+
+2024-06-25 - version 1.6.4
+* Add support for arrow key navigation and debug info.
+
+2024-06-24 - version 1.6.3
+* Feature: Set public site option on activation.
+
+2024-06-24 - version 1.6.2
+* Fix bulk action filter hook.
+
+2024-06-14 - version 1.6.1
+* Remove human review support (feature deprecated)
+
+2024-06-01 - version 1.6.0
+* Add support for The Seo Framework keywords
+
+2024-05-29 - version 1.5.9
+* Fix: JS Revert
+
+2024-05-27 - version 1.5.8
+* Remove duplicate JS function call.
+
+2024-05-26 - version 1.5.7
+* Fix: JS dependency update
+
+2024-05-21 - version 1.5.6
+* Fix: JS refactor
+
+2024-03-02 - version 1.5.5
+* Feature: Allow clearing alt text via CSV import.
+
+2024-02-24 - version 1.5.4
+* Add terse model.
+
+2024-01-02 - version 1.5.3
+* Tweak: Handle media modal without button target.
+
+2023-12-24 - version 1.5.2
+* Tweak: Async eligibility button.
+
+2023-12-02 - version 1.5.1
+* Fix: Handle post upload modal.
+
+2023-11-22 - version 1.5.0
+* Fix: Sanitize DB queries
+
+2023-11-20 - version 1.4.9
+* Tweak: Minify JS
+
+2023-10-05 - version 1.4.8
+* Fix: Better handling of scaled images.
+
+2023-10-01 - version 1.4.7
+* Fix: Improve speed of post refresh and image matching.
+
+2023-09-30 - version 1.4.6
+* Fix crash from missing history partial.
+
+2023-08-17 - version 1.4.5
+* Add setting for external images during bulk refresh.
+
+2023-08-15 - version 1.4.4
+* Add history page
+
+2023-07-22 - version 1.4.3
+* Fix: No redirect on plugin install
+
+2023-07-20 - version 1.4.2
+* Fix filesize for local files.
+
+2023-07-19 - version 1.4.1
+* Fix warning issue. Add AI model name.
