@@ -5,7 +5,7 @@ Tags: image alt text, AI, accessibility, alternative text, image to text
 Requires PHP: 7.0
 Requires at least: 4.7
 Tested up to: 6.6
-Stable tag: 1.8.5
+Stable tag: 1.8.6
 WC requires at least: 3.3
 WC tested up to: 9.2.3
 License: GPLv2 or later
@@ -66,8 +66,8 @@ Added support for SEOPress keywords.
 We now integrate Yoast, AllInOne, and RankMath focus keyphrases for alt text.
 
 == Changelog ==
-= 1.8.5 - 2024-09-16 =
-* Handle refresh for WooCommerce product posts.
+= 1.8.6 - 2024-10-08 =
+* Bump max file size to 16mb
 
 = older versions =
 * see changelog.txt for details

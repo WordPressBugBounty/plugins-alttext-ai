@@ -194,7 +194,7 @@ class ATAI_Attachment {
       }
     }
 
-    if ( $width < 50 || $height < 50 || $size > 10 || ! in_array( strtolower($extension), [ 'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp' ] ) ) {
+    if ( $width < 50 || $height < 50 || $size > 16 || ! in_array( strtolower($extension), [ 'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp' ] ) ) {
       $attachment_edit_url = get_edit_post_link( $attachment_id );
 
       // Bail early if context does not require logging

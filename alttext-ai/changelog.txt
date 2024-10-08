@@ -1,5 +1,8 @@
 *** AltText.ai Changelog ***
 
+2024-10-08 - version 1.8.6
+* Bump max file size to 16mb
+
 2024-09-16 - version 1.8.5
 * Handle refresh for WooCommerce product posts.
 
