@@ -1,5 +1,8 @@
 *** AltText.ai Changelog ***
 
+2024-10-20 - version 1.8.7
+* Fix pagination on History page
+
 2024-10-08 - version 1.8.6
 * Bump max file size to 16mb
 

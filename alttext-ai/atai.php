@@ -15,7 +15,7 @@
  * Plugin Name:       AltText.ai
  * Plugin URI:        https://alttext.ai/product
  * Description:       Automatically generate image alt text with AltText.ai.
- * Version:           1.8.6
+ * Version:           1.8.7
  * Author:            AltText.ai
  * Author URI:        https://alttext.ai
  * License:           GPL-2.0+
@@ -32,7 +32,7 @@ if ( ! defined( 'WPINC' ) ) {
 /**
  * Current plugin version.
  */
-define( 'ATAI_VERSION', '1.8.6' );
+define( 'ATAI_VERSION', '1.8.7' );
 
 /**
  * Constant to save the value of the plugin path.
@@ -43,6 +43,16 @@ define ( 'ATAI_PLUGIN_FILE', __FILE__ );
 * Constant for database table name of asset data
 */
 define ( 'ATAI_DB_ASSET_TABLE', 'atai_assets' );
+
+/**
+* Items per page on History
+*/
+define ( 'ATAI_HISTORY_ITEMS_PER_PAGE', 10 );
+
+/**
+* Number of page selectors to show at once on History
+*/
+define ( 'ATAI_HISTORY_PAGE_SELECTORS', 10 );
 
 /**
  * Constant to save the length of the CSV line.

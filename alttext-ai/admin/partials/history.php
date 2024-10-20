@@ -18,12 +18,14 @@
   global $wpdb;
   $atai_asset_table = $wpdb->prefix . ATAI_DB_ASSET_TABLE;
   $paged = intval( $_GET['paged'] ?? 1 );
-  $per_page = 10;
-  $offset = ($paged - 1) * $per_page;
+  $offset = ($paged - 1) * ATAI_HISTORY_ITEMS_PER_PAGE;
+  $pagination_start = floor(($paged - 1)  / ATAI_HISTORY_PAGE_SELECTORS) * ATAI_HISTORY_PAGE_SELECTORS + 1;
+  $pagination_end =  $pagination_start + ATAI_HISTORY_PAGE_SELECTORS - 1;
 
   // Get the total number of assets
   $total_assets = $wpdb->get_var("SELECT COUNT(DISTINCT wp_post_id) FROM {$atai_asset_table}"); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-  $total_pages = ceil($total_assets / $per_page);
+  $total_pages = ceil($total_assets / ATAI_HISTORY_ITEMS_PER_PAGE);
+  $pagination_end = min($pagination_end, $total_pages);
 
   // Get the assets for the current page
   // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -34,7 +36,7 @@
     ORDER BY updated_at DESC
     LIMIT %d OFFSET %d
 SQL
-    , $per_page, $offset)
+    , ATAI_HISTORY_ITEMS_PER_PAGE, $offset)
   );
   // phpcs:enable
 ?>
@@ -116,20 +118,19 @@ SQL
   <?php if ( $total_pages > 1 ) : ?>
     <nav aria-label="Page navigation">
       <ul class="flex items-center -space-x-px h-10 text-base">
-      <?php if ($paged > 1): ?>
+      <?php if ($pagination_start > ATAI_HISTORY_PAGE_SELECTORS): ?>
         <li>
-          <a href="<?php echo esc_url(add_query_arg('paged', $paged - 1)); ?>"
+          <a href="<?php echo esc_url(add_query_arg('paged', $pagination_start - 1)); ?>"
              class="flex items-center justify-center px-4 h-10 ms-0 leading-tight text-gray-500 bg-white border border-e-0 border-gray-300 rounded-s-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
             <span class="sr-only">Previous</span>
-            <svg class="w-3 h-3 rtl:rotate-180" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none"
-                 viewBox="0 0 6 10">
-              <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 1 1 5l4 4"/>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+              <path fill-rule="evenodd" d="M4.72 9.47a.75.75 0 0 0 0 1.06l4.25 4.25a.75.75 0 1 0 1.06-1.06L6.31 10l3.72-3.72a.75.75 0 1 0-1.06-1.06L4.72 9.47Zm9.25-4.25L9.72 9.47a.75.75 0 0 0 0 1.06l4.25 4.25a.75.75 0 1 0 1.06-1.06L11.31 10l3.72-3.72a.75.75 0 0 0-1.06-1.06Z" clip-rule="evenodd" />
             </svg>
           </a>
         </li>
       <?php endif; ?>
 
-      <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+      <?php for ($i = $pagination_start; $i <= $pagination_end; $i++): ?>
       <?php
         $page_class = ($i == $paged) ? "z-10 text-blue-600 border border-blue-300 bg-blue-50 hover:bg-blue-100 hover:text-blue-700" : "text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700";
       ?>
@@ -141,14 +142,13 @@ SQL
         </li>
       <?php endfor; ?>
 
-      <?php if ($paged < $total_pages): ?>
+      <?php if ($pagination_end < $total_pages): ?>
         <li>
-          <a href="<?php echo esc_url(add_query_arg('paged', $paged + 1)); ?>"
+          <a href="<?php echo esc_url(add_query_arg('paged', $pagination_end + 1)); ?>"
              class="flex items-center justify-center px-4 h-10 leading-tight text-gray-500 bg-white border border-gray-300 rounded-e-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
             <span class="sr-only">Next</span>
-            <svg class="w-3 h-3 rtl:rotate-180" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none"
-                 viewBox="0 0 6 10">
-              <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 9 4-4-4-4"/>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+              <path fill-rule="evenodd" d="M15.28 9.47a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 1 1-1.06-1.06L13.69 10 9.97 6.28a.75.75 0 0 1 1.06-1.06l4.25 4.25ZM6.03 5.22l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L8.69 10 4.97 6.28a.75.75 0 0 1 1.06-1.06Z" clip-rule="evenodd" />
             </svg>
           </a>
         </li>
