@@ -44,4 +44,4 @@ global $wpdb;
 $table_name = $wpdb->prefix . 'atai_assets'; // Cannot use plugin constant here
 $wpdb->query( "DROP TABLE IF EXISTS {$table_name};" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared
 
-delete_site_option( 'atai_db_version' );
+delete_option( 'atai_db_version' );

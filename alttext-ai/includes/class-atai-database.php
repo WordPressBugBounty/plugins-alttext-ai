@@ -115,13 +115,13 @@ SQL;
    * @access   public
    */
   public function check_database_schema() {
-    $installed_db_version = get_site_option( 'atai_db_version', '' );
+    $installed_db_version = get_option( 'atai_db_version', '' );
 
     if ( $installed_db_version != $this->db_version ) {
       $this->create_or_update_table();
 
       // Remember latest database schema update
-      update_site_option( 'atai_db_version', $this->db_version );
+      update_option( 'atai_db_version', $this->db_version );
     }
 
     // Migrate old data if we just created the new table:
