@@ -459,7 +459,7 @@ class ATAI_Post {
     if ( !empty($updated_content) ) {
       wp_update_post( array(
         'ID' => $post_id,
-        'post_content' => $updated_content,
+        'post_content' => str_replace('\\', '\\\\', $updated_content),
         )
       );
     }

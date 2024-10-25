@@ -1,5 +1,8 @@
 *** AltText.ai Changelog ***
 
+2024-10-25 - version 1.8.9
+* Fix backslash escaping in post refresh
+
 2024-10-20 - version 1.8.8
 * Support multisite separate histories
 
