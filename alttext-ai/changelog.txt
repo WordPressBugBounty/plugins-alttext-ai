@@ -1,5 +1,8 @@
 *** AltText.ai Changelog ***
 
+2024-10-28 - version 1.9.0
+* Tested up to WP 6.7
+
 2024-10-25 - version 1.8.9
 * Fix backslash escaping in post refresh
 
