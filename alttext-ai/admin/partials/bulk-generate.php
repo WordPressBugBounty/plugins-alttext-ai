@@ -368,6 +368,9 @@ SQL;
     <p class="text-lg">
       <span data-bulk-generate-progress-current>0</span> / <?php echo esc_html($images_count); ?> images processed (<span data-bulk-generate-progress-successful>0</span> successful)
     </p>
+    <p class="text-sm">
+      Last image ID: <span data-bulk-generate-last-post-id class="ml-2"></span>
+    </p>
 
     <p>
       <button
