@@ -315,18 +315,23 @@ class ATAI_Post {
     $num_alttext_generated = 0;
     $no_credits = false;
     $updated_content = '';
+    $img_src_attr = get_option( 'atai_refresh_src_attr', 'src' );
 
     if ( version_compare( get_bloginfo( 'version' ), '6.2') >= 0 ) {
       $tags = new WP_HTML_Tag_Processor( $content );
 
       while ( $tags->next_tag( 'img' ) ) {
-        $img_url = $img_url_original = $tags->get_attribute( 'src' );
+        $img_url = $img_url_original = $tags->get_attribute( $img_src_attr );
 
         $should_generate = false;
         $total_images_found = $total_images_found + 1;
 
+        if ( empty($img_url) ) {
+          continue;
+        }
+
         // If relative path, convert to full URL:
-        if ( isset($img_url) && substr($img_url, 0, 1) == "/" ) {
+        if ( substr($img_url, 0, 1) == "/" ) {
           $img_url = $img_url_original = home_url() . $img_url;
         }
 
@@ -381,8 +386,9 @@ class ATAI_Post {
 
       $updated_content = $tags->get_updated_html();
     } else {
+      $src_regex = sprintf('/<img .*?(%s="([^"]*?)")[^>]*?>/i', $img_src_attr);
       $updated_content = preg_replace_callback(
-        '/<img .*?(src="([^"]*?)")[^>]*?>/i',
+        $src_regex,
         function( $matches ) use ( $atai_attachment, $overwrite, $process_external, $keywords, &$total_images_found, &$num_alttext_generated, &$no_credits ) {
           $img_tag = $matches[0];
           $img_url = $img_url_original = $matches[2]; // The src URL is captured in the second group.

@@ -36,6 +36,7 @@ delete_option( 'atai_timeout' );
 delete_option( 'atai_keywords_title' );
 delete_option( 'atai_bulk_refresh_overwrite' );
 delete_option( 'atai_bulk_refresh_external' );
+delete_option( 'atai_refresh_src_attr' );
 delete_option( 'atai_skip_filenotfound' );
 delete_option( 'atai_woo_marketplace' );
 

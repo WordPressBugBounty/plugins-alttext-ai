@@ -376,6 +376,15 @@ class ATAI_Settings {
 
     register_setting(
 			'atai-settings',
+      'atai_refresh_src_attr',
+      array(
+        'sanitize_callback' => array( $this, 'sanitize_refresh_src_field' ),
+        'default'           => 'src',
+      )
+    );
+
+    register_setting(
+			'atai-settings',
       'atai_timeout',
       array(
         'default'           => '20',
@@ -399,6 +408,24 @@ class ATAI_Settings {
    */
   public function sanitize_yes_no_checkbox( $input ) {
     return $input === 'yes' ? 'yes' : 'no';
+  }
+
+  /**
+   * Sanitizes a string with an ensured default if blank.
+   *
+   * @since 1.9.2
+   * @access public
+   *
+   * @param string $input The string to sanitize
+   *
+   * @return string Returns sanitized string with default applied.
+   */
+  public function sanitize_refresh_src_field( $input ) {
+    if ( empty($input) ) {
+      $input = 'src';
+    }
+
+    return sanitize_text_field($input);
   }
 
   /**

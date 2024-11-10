@@ -622,6 +622,30 @@
           </div>
 
           <div class="sm:grid sm:grid-cols-3 sm:gap-4 sm:py-4">
+            <div class="text-sm font-semibold leading-6 text-gray-900" aria-hidden="true"><?php esc_html_e( 'Post/Page Refresh', 'alttext-ai' ); ?></div>
+            <div class="mt-4 sm:col-span-2 sm:mt-0">
+              <div class="max-w-lg space-y-6">
+                <div>
+                  <label for="atai_refresh_src_attr" class="block text-sm leading-6 text-gray-600"><?php esc_html_e( 'Image tag attribute for source URL', 'alttext-ai' ); ?></label>
+                  <div class="mt-2">
+                    <input
+                      type="text"
+                      name="atai_refresh_src_attr"
+                      id="atai_refresh_src_attr"
+                      maxlength="128"
+                      class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                      value="<?php echo esc_html ( get_option( 'atai_refresh_src_attr' ) ); ?>"
+                    >
+                  </div>
+                  <p class="mt-1 text-gray-500">
+                    <?php esc_html_e( 'Specify the attribute on <img> tags which contains the image source URL. Typically needed if your posts use Javascript to lazy load images.', 'alttext-ai' ); ?>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="sm:grid sm:grid-cols-3 sm:gap-4 sm:py-4">
             <div class="text-sm font-semibold leading-6 text-gray-900" aria-hidden="true"><?php esc_html_e( 'Error Logs', 'alttext-ai' ); ?></div>
             <div class="mt-4 sm:col-span-2 sm:mt-0">
               <div class="max-w-lg space-y-6">

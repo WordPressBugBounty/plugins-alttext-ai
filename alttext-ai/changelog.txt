@@ -1,5 +1,8 @@
 *** AltText.ai Changelog ***
 
+2024-11-10 - version 1.9.2
+* Allow setting image src attribute for refresh.
+
 2024-11-07 - version 1.9.1
 * Show last bulk image ID
 
