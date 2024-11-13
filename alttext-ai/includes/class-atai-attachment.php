@@ -846,6 +846,9 @@ SQL;
 
     foreach ( $images_to_update as &$image ) {
       $attachment_id = ( $mode === 'bulk-select' ) ? $image : $image->post_id;
+      if ( defined( 'ATAI_BULK_DEBUG' ) ) {
+        ATAI_Utility::log_error( sprintf("BulkGenerate: Attachment ID %d", $attachment_id) );
+      }
       $response = $this->generate_alt( $attachment_id, null, array( 'keywords' => $keywords, 'negative_keywords' => $negative_keywords ) );
 
       if ( $response === 'insufficient_credits' ) {
