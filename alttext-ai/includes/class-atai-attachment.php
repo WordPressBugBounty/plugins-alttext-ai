@@ -165,7 +165,12 @@ class ATAI_Attachment {
 
     $file = ( is_array($meta) && array_key_exists('file', $meta) ) ? ($upload_info['basedir'] . '/' . $meta['file']) : get_attached_file( $attachment_id );
     if ( empty( $meta ) && file_exists( $file ) ) {
-      $meta = wp_generate_attachment_metadata( $attachment_id, $file );
+      if ( ( get_option( 'atai_wp_generate_metadata' ) === 'no' ) ) {
+        $meta = array('width' => 100, 'height' => 100); // Default values assuming this is a valid image
+      }
+      else {
+        $meta = wp_generate_attachment_metadata( $attachment_id, $file );
+      }
     }
 
     $size = filesize( $file );

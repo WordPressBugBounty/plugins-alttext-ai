@@ -1,5 +1,8 @@
 *** AltText.ai Changelog ***
 
+2024-11-13 - version 1.9.4
+* Setting to skip metadata generation
+
 2024-11-13 - version 1.9.3
 * Internal bulk update debugging.
 

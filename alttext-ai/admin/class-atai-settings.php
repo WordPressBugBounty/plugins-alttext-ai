@@ -385,6 +385,15 @@ class ATAI_Settings {
 
     register_setting(
 			'atai-settings',
+      'atai_wp_generate_metadata',
+      array(
+        'sanitize_callback' => array( $this, 'sanitize_yes_no_checkbox' ),
+        'default'           => 'yes',
+      )
+    );
+
+    register_setting(
+			'atai-settings',
       'atai_timeout',
       array(
         'default'           => '20',

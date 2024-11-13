@@ -594,6 +594,21 @@
                   </div>
                 </div>
                 <div class="relative flex gap-x-3">
+                  <div class="flex h-6 items-center">
+                    <input
+                      id="atai_wp_generate_metadata"
+                      name="atai_wp_generate_metadata"
+                      type="checkbox"
+                      value="yes"
+                      class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600 checked:bg-white"
+                      <?php checked( 'yes', get_option( 'atai_wp_generate_metadata' ) ); ?>
+                    >
+                  </div>
+                  <div class="-mt-1 text-sm leading-6">
+                    <label for="atai_wp_generate_metadata" class="font-medium text-gray-900"><?php esc_html_e( 'Allow WordPress to generate missing metadata for processed images.', 'alttext-ai' ); ?></label>
+                  </div>
+                </div>
+                <div class="relative flex gap-x-3">
                   <div class="text-sm leading-6">
                     <label for="atai_timeout" class="font-medium text-gray-900"><?php esc_html_e( 'Timeout alt text generation requests after:', 'alttext-ai' ); ?></label>
                   </div>
