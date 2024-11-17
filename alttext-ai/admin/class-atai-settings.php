@@ -307,7 +307,6 @@ class ATAI_Settings {
       'atai_public',
       array(
         'sanitize_callback' => array( $this, 'sanitize_yes_no_checkbox' ),
-        'default'           => 'no',
       )
     );
 

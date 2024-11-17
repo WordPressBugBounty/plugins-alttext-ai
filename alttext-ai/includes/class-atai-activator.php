@@ -39,9 +39,9 @@ class ATAI_Activator {
     $database = new ATAI_Database();
     $database->check_database_schema();
 
-    // If the site is publicly accessible, set the atai_public option to 'yes'
-    if (ATAI_Utility::is_publicly_accessible()) {
-      update_option( 'atai_public', 'yes' );
+    // Set the atai_public option if not set already:
+    if ( get_option( 'atai_public' ) === false ) {
+      update_option( 'atai_public', ATAI_Utility::is_publicly_accessible() ? 'yes' : 'no' );
     }
 
     // Set a transient to trigger the setup instruction notice:

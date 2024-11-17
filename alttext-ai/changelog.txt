@@ -1,5 +1,8 @@
 *** AltText.ai Changelog ***
 
+2024-11-17 - version 1.9.5
+* Do not overwrite public setting on activate
+
 2024-11-13 - version 1.9.4
 * Setting to skip metadata generation
 
