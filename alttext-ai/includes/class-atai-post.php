@@ -149,7 +149,7 @@ class ATAI_Post {
         data-post-bulk-generate
       >
           <img
-            src="<?php echo esc_url(plugin_dir_url( ATAI_PLUGIN_FILE ) . 'admin/img/icon-button-generate.png'); ?>"
+            src="<?php echo esc_url(plugin_dir_url( ATAI_PLUGIN_FILE ) . 'admin/img/icon-button-generate.svg'); ?>"
             alt="<?php esc_html_e( 'Refresh alt text with AltText.ai', 'alttext-ai' ); ?>">
           <span>Refresh Alt Text</span>
       </a>

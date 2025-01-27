@@ -498,7 +498,7 @@ class ATAI_Settings {
     }
 
     // Add custom success message
-    $message = __( 'API Key saved. Pro tip: Add alt text to all your existing images with our <a href="%s" class="font-medium text-indigo-600 hover:text-indigo-500">Bulk Generate</a> feature!', 'alttext-ai' );
+    $message = __( 'API Key saved. Pro tip: Add alt text to all your existing images with our <a href="%s" class="font-medium text-primary-600 hover:text-primary-500">Bulk Generate</a> feature!', 'alttext-ai' );
     $message = sprintf( $message, admin_url( 'admin.php?page=atai-bulk-generate' ) );
     add_settings_error( 'atai_api_key_updated', '', $message, 'updated' );
 

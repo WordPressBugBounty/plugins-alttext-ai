@@ -1,5 +1,9 @@
 *** AltText.ai Changelog ***
 
+2025-01-17 - version 1.9.6
+* Updated branding throughout the plugin.
+* Added more detailed error logging for debugging.
+
 2024-11-17 - version 1.9.5
 * Do not overwrite public setting on activate
 

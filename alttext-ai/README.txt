@@ -5,7 +5,7 @@ Tags: image alt text, AI, accessibility, alternative text, image to text
 Requires PHP: 7.0
 Requires at least: 4.7
 Tested up to: 6.7
-Stable tag: 1.9.5
+Stable tag: 1.9.6
 WC requires at least: 3.3
 WC tested up to: 9.2.3
 License: GPLv2 or later
@@ -66,8 +66,9 @@ Added support for SEOPress keywords.
 We now integrate Yoast, AllInOne, and RankMath focus keyphrases for alt text.
 
 == Changelog ==
-= 1.9.5 - 2024-11-17 =
-* Do not overwrite public setting on activate
+= 1.9.6 - 2025-01-17 =
+* Updated branding throughout the plugin.
+* Added more detailed error logging for debugging.
 
 = older versions =
 * see changelog.txt for details

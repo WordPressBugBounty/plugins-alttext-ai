@@ -80,7 +80,7 @@ class ATAI_Admin {
       'should_update_title'                     => get_option( 'atai_update_title' ),
       'should_update_caption'                   => get_option( 'atai_update_caption' ),
       'should_update_description'               => get_option( 'atai_update_description' ),
-      'icon_button_generate'                    => plugin_dir_url( ATAI_PLUGIN_FILE ) . 'admin/img/icon-button-generate.png',
+      'icon_button_generate'                    => plugin_dir_url( ATAI_PLUGIN_FILE ) . 'admin/img/icon-button-generate.svg',
       'has_api_key'                             => ATAI_Utility::get_api_key() ? true : false,
       'settings_page_url'                       => admin_url( 'admin.php?page=atai' ),
     ) );

@@ -41,9 +41,9 @@ SQL
   // phpcs:enable
 ?>
 
-<div class="mr-5">
+<div class="mr-5 mt-4">
   <h2 class="text-2xl font-bold"><?php esc_html_e('Alt Text Processing History', 'alttext-ai'); ?></h2>
-  <p class="mt-2">
+  <p class="my-2">
     Below is a list of all images from your Media Library which have been processed by AltText.ai
   </p>
 
@@ -54,7 +54,7 @@ SQL
       </svg>
       <h3 class="mt-2 text-lg font-semibold text-gray-900">No media files have been processed yet.</h3>
       <p class="mt-1 text-sm text-gray-500">You can use our
-        <a href="<?php echo esc_url(admin_url( 'admin.php?page=atai-bulk-generate' )) ?>" class="font-medium text-indigo-600 hover:text-indigo-500">bulk generate tool</a>
+        <a href="<?php echo esc_url(admin_url( 'admin.php?page=atai-bulk-generate' )) ?>" class="font-medium text-primary-600 hover:text-primary-500">bulk generate tool</a>
         to get started on your existing images.
       </p>
     </div>
@@ -98,9 +98,9 @@ SQL
               </td>
               <td class="px-6 py-4">
                 <div class="sm:flex sm:items-center sm:gap-x-3">
-                  <textarea id="edit-history-input-<?php echo esc_html($attachment_id); ?>" rows="4" maxlength="1024" class="block w-full rounded-md border-1 py-1.5 text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 resize-none"><?php echo esc_html($alt_text); ?></textarea>
+                  <textarea id="edit-history-input-<?php echo esc_html($attachment_id); ?>" rows="4" maxlength="1024" class="block w-full rounded-md border-1 py-1.5 text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6 resize-none"><?php echo esc_html($alt_text); ?></textarea>
                   <div class="flex flex-col">
-                    <button type="button" class="rounded bg-indigo-50 border-none cursor-pointer mt-1 sm:mt-0 px-2 py-1 text-sm font-semibold text-indigo-500 shadow-sm hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-30" data-attachment-id="<?php echo esc_html($attachment_id); ?>" data-edit-history-trigger>Update</button>
+                    <button type="button" class="rounded bg-primary-50 border-none cursor-pointer mt-1 sm:mt-0 px-2 py-1 text-sm font-semibold text-primary-500 shadow-sm hover:bg-primary-100 disabled:cursor-not-allowed disabled:opacity-30" data-attachment-id="<?php echo esc_html($attachment_id); ?>" data-edit-history-trigger>Update</button>
                     <span id="edit-history-success-<?php echo esc_html($attachment_id); ?>" class="hidden absolute mt-8 font-semibold text-lime-600">Updated!</span>
                   </div>
                 </div>
@@ -132,7 +132,7 @@ SQL
 
       <?php for ($i = $pagination_start; $i <= $pagination_end; $i++): ?>
       <?php
-        $page_class = ($i == $paged) ? "z-10 text-blue-600 border border-blue-300 bg-blue-50 hover:bg-blue-100 hover:text-blue-700" : "text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700";
+        $page_class = ($i == $paged) ? "z-10 text-primary-600 border border-primary-300 bg-primary-50 hover:bg-primary-100 hover:text-primary-700" : "text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700";
       ?>
         <li>
           <a href="<?php echo esc_url(add_query_arg('paged', $i)); ?>"
