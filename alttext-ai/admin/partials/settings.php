@@ -42,11 +42,11 @@
       }
     </script>
     <div id="atai-welcome-panel" class="overflow-hidden mb-4 rounded-2xl border border-gray-200 bg-primary-600">
-      <a id="atai-welcome-panel-close" class="flex relative z-10 justify-end items-center pt-4 pr-4 w-full text-gray-50 hover:text-primary-200" href="#" aria-label="Dismiss the welcome panel" onclick="onCloseAtaiWelcomePanel(); return false;">
+      <a id="atai-welcome-panel-close" class="flex relative z-10 justify-end items-center pt-4 pr-4 w-full text-gray-50 hover:text-primary-200 no-underline" href="#" aria-label="Dismiss the welcome panel" onclick="onCloseAtaiWelcomePanel(); return false;">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
           <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        <span class="ml-1">Close</span>
+        <span class="ml-1 mr-4">Close</span>
       </a>
       <div class="relative px-6 pt-14 lg:px-8 isolate">
         <div class="py-8 mx-auto max-w-5xl">
@@ -75,7 +75,7 @@
                   <span class="flex justify-center items-center p-2 leading-none text-center text-white bg-gray-900 rounded-full size-6"><span>1</span></span>
                   <p class="text-base">
                     If you don't have an AltText.ai account,
-                    <a class="underline text- decoration-dotted hover:decoration-solid hover:text-primary-50" href="https://alttext.ai?utm_source=wp&utm_medium=dl" target="_blank" rel="noopener noreferrer">create a free account</a>
+                    <a class="underline !text-white decoration-dotted hover:decoration-solid hover:text-primary-50" href="https://alttext.ai?utm_source=wp&utm_medium=dl" target="_blank" rel="noopener noreferrer">create a free account</a>
                     on our site.
                   </p>
                 </div>
@@ -83,7 +83,7 @@
                   <span class="flex justify-center items-center p-2 leading-none text-center text-white bg-gray-900 rounded-full size-6"><span>2</span></span>
                   <p class="text-base">
                   Copy or create
-                  <a class="underline text- decoration-dotted hover:decoration-solid hover:text-primary-50" href="https://alttext.ai/account/api_keys" target="_blank" rel="noopener noreferrer">your API Key</a>
+                  <a class="underline !text-white decoration-dotted hover:decoration-solid hover:text-primary-50" href="https://alttext.ai/account/api_keys" target="_blank" rel="noopener noreferrer">your API Key</a>
                   from your account, and enter it below.
                   </p>
                 </div>
@@ -91,7 +91,7 @@
                   <span class="flex justify-center items-center p-2 leading-none text-center text-white bg-gray-900 rounded-full size-6"><span>3</span></span>
                   <p class="text-base">
                 See the plugin features in our short
-                <a class="underline text- decoration-dotted hover:decoration-solid hover:text-primary-50" href="https://youtu.be/LpMXPbMds4U" target="_blank" rel="noopener noreferrer">
+                <a class="underline !text-white decoration-dotted hover:decoration-solid hover:text-primary-50" href="https://youtu.be/LpMXPbMds4U" target="_blank" rel="noopener noreferrer">
                   Tutorial video.
                 </a>
                 </p>

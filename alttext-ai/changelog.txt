@@ -1,5 +1,8 @@
 *** AltText.ai Changelog ***
 
+2025-01-27 - version 1.9.7
+* Added missing SVG button file.
+
 2025-01-17 - version 1.9.6
 * Updated branding throughout the plugin.
 * Added more detailed error logging for debugging.
