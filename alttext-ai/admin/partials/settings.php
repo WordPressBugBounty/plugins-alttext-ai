@@ -221,7 +221,21 @@
                 ?>
               </select>
               <?php if ( ATAI_Utility::has_polylang() || ATAI_Utility::has_wpml() ) : ?>
-                <p class="mt-1 text-gray-500"><?php esc_html_e( 'Note: Translation plugins can override this value.', 'alttext-ai' ); ?></p>
+                <div class="ml-2 mt-4 flex relative gap-x-3">
+                  <div class="flex items-center h-6">
+                    <input
+                      id="atai_force_lang"
+                      name="atai_force_lang"
+                      type="checkbox"
+                      value="yes"
+                      class="w-4 h-4 rounded border-gray-300 checked:bg-white text-primary-600 focus:ring-primary-600"
+                      <?php checked( 'yes', get_option( 'atai_force_lang' ) ); ?>
+                    >
+                  </div>
+                  <div class="-mt-1 text-sm leading-6">
+                    <label for="atai_force_lang" class="text-gray-600"><?php esc_html_e( 'Always use this language, even if translations exist.', 'alttext-ai' ); ?></label>
+                  </div>
+                </div>
               <?php endif; ?>
             </div>
           </div>

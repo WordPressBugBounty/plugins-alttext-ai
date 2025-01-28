@@ -24,6 +24,7 @@ delete_option( 'atai_model_name' );
 delete_option( 'atai_enabled' );
 delete_option( 'atai_ecomm' );
 delete_option( 'atai_ecomm_title' );
+delete_option( 'atai_force_lang' );
 delete_option( 'atai_update_title' );
 delete_option( 'atai_update_caption' );
 delete_option( 'atai_update_description' );

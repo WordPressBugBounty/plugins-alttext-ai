@@ -288,11 +288,16 @@ SQL;
    * @param integer $attachment_id  ID of the attachment
 	 */
   public static function lang_for_attachment( $attachment_id ) {
-    if ( ATAI_Utility::has_polylang() ) {
-      $language = ATAI_Utility::polylang_lang_for_attachment($attachment_id);
+    if ( get_option( 'atai_force_lang' ) === 'yes' ) {
+      $language = get_option( 'atai_lang' );
     }
-    elseif ( ATAI_Utility::has_wpml() ) {
-      $language = ATAI_Utility::wpml_lang_for_attachment($attachment_id);
+    else {
+      if ( ATAI_Utility::has_polylang() ) {
+        $language = ATAI_Utility::polylang_lang_for_attachment($attachment_id);
+      }
+      elseif ( ATAI_Utility::has_wpml() ) {
+        $language = ATAI_Utility::wpml_lang_for_attachment($attachment_id);
+      }
     }
 
     // Ensure we can translate this language

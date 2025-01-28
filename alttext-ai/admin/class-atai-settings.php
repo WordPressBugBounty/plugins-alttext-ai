@@ -223,6 +223,15 @@ class ATAI_Settings {
 
     register_setting(
 			'atai-settings',
+      'atai_force_lang',
+      array(
+        'sanitize_callback' => array( $this, 'sanitize_yes_no_checkbox' ),
+        'default'           => 'no',
+      )
+    );
+
+    register_setting(
+			'atai-settings',
       'atai_update_title',
       array(
         'sanitize_callback' => array( $this, 'sanitize_yes_no_checkbox' ),

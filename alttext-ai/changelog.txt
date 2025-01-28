@@ -1,5 +1,8 @@
 *** AltText.ai Changelog ***
 
+2025-01-27 - version 1.9.8
+* Added option to force language translation.
+
 2025-01-27 - version 1.9.7
 * Added missing SVG button file.
 
