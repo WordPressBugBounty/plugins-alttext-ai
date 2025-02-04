@@ -1,5 +1,10 @@
 *** AltText.ai Changelog ***
 
+2025-02-04 - version 1.9.9
+* More detailed logs for unprocessed images
+* Added graceful rate-limiting response
+* Updates to improve CDN processing
+
 2025-01-27 - version 1.9.8
 * Added option to force language translation.
 

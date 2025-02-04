@@ -574,4 +574,41 @@ SQL;
 
     if ( $die ) die();
   }
+  /**
+   * Get the correct file size for an attachment, supporting offloaded media.
+   *
+   * @since 1.9.9
+   * @access public
+   *
+   * @param int $attachment_id The WordPress attachment ID.
+   * @return int|null File size in bytes, or null if unavailable.
+   */
+  public static function get_attachment_size($attachment_id)
+  {
+    if (empty($attachment_id) || !is_numeric($attachment_id)) {
+      ATAI_Utility::log_error("Invalid attachment ID provided for file size retrieval: " . print_r($attachment_id, true));
+      return null;
+    }
+
+    // Check in `_wp_attachment_metadata`
+    $metadata = wp_get_attachment_metadata($attachment_id);
+    if (!empty($metadata) && isset($metadata['filesize'])) {
+      return (int) $metadata['filesize'];
+    }
+
+    // Check if file size exists in WP Offload Media metadata
+    $size = get_post_meta($attachment_id, 'as3cf_filesize_total', true);
+    if (!empty($size)) {
+      return (int) $size; // Already in bytes
+    }
+
+    // Fallback: Try local file check
+    $file = get_attached_file($attachment_id);
+    if (!empty($file) && file_exists($file)) {
+      return filesize($file);
+    }
+
+    ATAI_Utility::log_error("File size unavailable for attachment ID: {$attachment_id}");
+    return null;
+  }
 }

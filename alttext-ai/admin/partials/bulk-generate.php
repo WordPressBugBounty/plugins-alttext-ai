@@ -361,7 +361,7 @@ SQL;
           data-max="<?php echo esc_html($images_count); ?>"
           data-current="0"
           data-successful="0"
-          class="h-4 rounded-full bg-primary-600" style="width: 0.5%"
+          class="h-4 rounded-full bg-primary-600 transition-width ease-in-out duration-700" style="width: 0.5%"
         ></div>
       </div>
     </div>

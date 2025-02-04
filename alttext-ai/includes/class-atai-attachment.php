@@ -94,10 +94,20 @@ class ATAI_Attachment {
 
     $api            = new ATAI_API( $api_key );
     $response_code = null;
-    $response       = $api->create_image( $attachment_id, $attachment_url, $api_options, $response_code );
-
-    if ( isset($response_code) && $response_code == '429' ) {
-      sleep(1); // Allow time for API to recover
+    $max_retries = 5;
+    $delay = 1; // 1 second
+    
+    for ($attempt = 0; $attempt < $max_retries; $attempt++) {
+      $response = $api->create_image( $attachment_id, $attachment_url, $api_options, $response_code );
+  
+      if ($response_code != '429') {
+          break; // Exit if not rate-limited
+      }
+  
+      if ($attempt < $max_retries - 1) {
+          sleep($delay);
+          $delay *= 2; // (1s → 2s → 4s → 8s)
+      }
     }
 
     if ( ! is_array( $response ) ) {
@@ -173,17 +183,32 @@ class ATAI_Attachment {
       }
     }
 
-    $size = filesize( $file );
-    if ( $size === false && get_option('atai_skip_filenotfound') === 'yes' ) {
-      // Unable to find the file
-      return false;
+    $size = null;
+
+    // Local File check
+    if (file_exists($file)) {
+      $size = filesize($file);
+    }
+
+    // Check metadata first
+    if (!$size && isset($meta['filesize'])) {
+      $size = $meta['filesize'];
+    }
+
+    // Check offloaded plugin metadata
+    if (!$size) {
+      $offload_meta = get_post_meta($attachment_id, 'amazonS3_info', true) ?: get_post_meta($attachment_id, 'cloudinary_info', true);
+      if (isset($offload_meta['key'])) {
+        $external_url = wp_get_attachment_url($attachment_id);
+        $size = ATAI_Utility::get_attachment_size($external_url);
+      }
     }
 
     $width    = $meta['width'] ?? 0;
     $height   = $meta['height'] ?? 0;
-    $size     = $size / pow(1024, 2); // in MBs
-    $type     = wp_check_filetype( $file );
-    $extension = $type['ext'] ?? null;
+    $size     = $size ? ($size / pow(1024, 2)) : null; // in MBs
+    $type     = wp_check_filetype($file) ?: [];
+    $extension = $type['ext'] ?? pathinfo($file, PATHINFO_EXTENSION);
 
     // If unable to get extension from WP, try parsing filename directly:
     if ( empty($extension) ) {
@@ -191,31 +216,84 @@ class ATAI_Attachment {
     }
 
     $file_type_extensions = get_option( 'atai_type_extensions' );
+    $attachment_edit_url = get_edit_post_link($attachment_id);
 
-    if ( ! empty( $file_type_extensions ) ) {
-      $valid_extensions = array_map( 'trim', explode( ',' , $file_type_extensions) );
-      if ( ! in_array( strtolower( $extension ), $valid_extensions ) ) {
-        return false; // This image extension is not in our whitelist of allowed extensions
+    // Logging reasons for ineligibility
+    if (! empty($file_type_extensions)) {
+      $valid_extensions = array_map('trim', explode(',', $file_type_extensions));
+      if (! in_array(strtolower($extension), $valid_extensions)) {
+        if ( $context === 'generate' ) {
+          ATAI_Utility::log_error(
+            sprintf(
+              '<a href="%s" target="_blank">Image #%d</a>: %s (%s)',
+              esc_url($attachment_edit_url),
+              (int) $attachment_id,
+              esc_html__('User setting image filtering: Filetype not allowed.', 'alttext-ai'),
+              esc_html($extension)
+            )
+          );
+        }
+        return false; // This image extension is not in their whitelist of allowed extensions
       }
     }
 
-    if ( $width < 50 || $height < 50 || $size > 16 || ! in_array( strtolower($extension), [ 'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp' ] ) ) {
-      $attachment_edit_url = get_edit_post_link( $attachment_id );
-
-      // Bail early if context does not require logging
-      if ( $context !== 'generate' ) {
-        return false;
+    if (!in_array(strtolower($extension), ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'])) {
+      if ( $context === 'generate' ) {
+        ATAI_Utility::log_error(
+          sprintf(
+            '<a href="%s" target="_blank">Image #%d</a>: %s (%s)',
+            esc_url($attachment_edit_url),
+            (int) $attachment_id,
+            esc_html__('Unsupported extension.', 'alttext-ai'),
+            esc_html($extension)
+          )
+        );
       }
+      return false;
+    }
 
-      ATAI_Utility::log_error(
-        sprintf(
-          '<a href="%s" target="_blank">Image #%d</a>: %s',
-          esc_url( $attachment_edit_url ),
-          (int) $attachment_id,
-          esc_html__( 'Not eligible. Check minimum dimensions/max size/file type.', 'alttext-ai' )
-        )
-      );
+    if ($size === null || $size === false) {
+      if ($context === 'generate' && get_option('atai_skip_filenotfound') === 'yes') {
+        ATAI_Utility::log_error(
+          sprintf(
+            '<a href="%s" target="_blank">Image #%d</a>: %s',
+            esc_url($attachment_edit_url),
+            (int) $attachment_id,
+            esc_html__('File not found.', 'alttext-ai')
+          )
+        );
+      }
+      return false;
+    }
 
+    if ($size > 16) {
+      if ( $context === 'generate' ) {
+        ATAI_Utility::log_error(
+          sprintf(
+            '<a href="%s" target="_blank">Image #%d</a>: %s (%.2f MB)',
+            esc_url($attachment_edit_url),
+            (int) $attachment_id,
+            esc_html__('File size exceeds 16MB limit.', 'alttext-ai'),
+            $size
+          )
+        );
+      }
+      return false;
+    }
+
+    if ($width < 50 || $height < 50) {
+      if ( $context === 'generate' ) {
+        ATAI_Utility::log_error(
+          sprintf(
+            '<a href="%s" target="_blank">Image #%d</a>: %s (%dx%d)',
+            esc_url($attachment_edit_url),
+            (int) $attachment_id,
+            esc_html__('Image dimensions too small.', 'alttext-ai'),
+            $width,
+            $height
+          )
+        );
+      }
       return false;
     }
 
