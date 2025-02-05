@@ -426,7 +426,7 @@
                     <label for="atai_keywords" class="font-medium text-gray-900"><?php esc_html_e( 'Generate alt text using focus keyphrases, if present.', 'alttext-ai' ); ?></label>
                     <p class="mt-1 text-gray-500">
                       AltText.ai will intelligently integrate the focus keyphrases from the associated post.
-                      Compatible with Yoast SEO, AllInOne SEO, RankMath, SEOPress, and Squirrly SEO plugins for WordPress.
+                      Compatible with Yoast SEO, AllInOne SEO, RankMath, SEOPress, Squirrly, and SmartCrawl Pro SEO plugins for WordPress.
                       <a href="https://alttext.ai/support#faq-wordpress" target="blank" rel="noopener" class="font-medium text-primary-600 hover:text-primary-500">Learn more</a>.
                     </p>
                   </div>

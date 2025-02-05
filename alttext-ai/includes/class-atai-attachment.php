@@ -442,6 +442,11 @@ SQL;
         $keywords = $this->theseoframework_seo_keywords( $attachment_id, $post_id );
       }
 
+      // Fetch keywords from SmartCrawl Pro.
+      if ( ! count( $keywords ) ) {
+        $keywords = $this->smartcrawl_seo_keywords( $attachment_id, $post_id );
+      }
+
       /**
        * Filter the keywords to use for alt text generation.
        *
@@ -797,6 +802,47 @@ SQL;
 
       return $keywords;
     }
+  
+  /**
+   * Return array of keywords from SmartCrawl Pro.
+   *
+   * @since 1.9.91
+   * @access public
+   *
+   * @param integer $attachment_id ID of the attachment.
+   * @param integer $post_id ID of the post that has keywords. Can be NULL.
+   *
+   * @return Array of keywords, or empty array if none.
+   */
+  public function smartcrawl_seo_keywords($attachment_id, $post_id)
+  {
+    // Ensure SmartCrawl is active
+    if (! ATAI_Utility::has_smartcrawl()) {
+      error_log("nope");
+      return array();
+    }
+
+    // Bail if post ID is missing
+    if (! $post_id) {
+      return array();
+    }
+
+    // Fetch SmartCrawl focus keywords
+    $raw_focus_keywords = get_post_meta($post_id, '_wds_focus-keywords', true);
+
+    if (empty($raw_focus_keywords)) {
+      return array();
+    }
+
+    // Convert serialized data if needed
+    if (is_serialized($raw_focus_keywords)) {
+      $focus_keywords = unserialize($raw_focus_keywords);
+    } else {
+      $focus_keywords = explode(',', $raw_focus_keywords);
+    }
+
+    return array_map('trim', (array) $focus_keywords);
+  }
 
   /**
    * Generate alt text for newly added image/attachment

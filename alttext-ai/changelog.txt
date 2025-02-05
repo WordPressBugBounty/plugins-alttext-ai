@@ -1,5 +1,8 @@
 *** AltText.ai Changelog ***
 
+2025-02-05 - version 1.9.91
+* Add support for SmartCrawl Pro keywords
+
 2025-02-04 - version 1.9.9
 * More detailed logs for unprocessed images
 * Added graceful rate-limiting response

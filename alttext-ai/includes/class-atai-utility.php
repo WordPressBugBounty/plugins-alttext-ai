@@ -236,6 +236,17 @@ SQL;
 	}
 
   /**
+   * Determine if SmartCrawl is installed/active.
+   *
+   * @since 1.9.91
+   * @access public
+   */
+  public static function has_smartcrawl() {
+    include_once( ABSPATH . 'wp-admin/includes/plugin.php' );
+    return in_array( 'smartcrawl-seo/wpmu-dev-seo.php', apply_filters( 'active_plugins', get_option( 'active_plugins' ) ) );
+  }
+
+  /**
 	 * Get Polylang language for given attachment
 	 *
 	 * @since    1.0.45
