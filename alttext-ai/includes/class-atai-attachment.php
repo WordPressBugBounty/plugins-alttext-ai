@@ -85,7 +85,11 @@ class ATAI_Attachment {
       $api_options['ecomm'] = $this->filtered_ecomm_data( $attachment_id, $api_options['ecomm'] );
 
       if ( ! count( $api_options['keywords'] ) ) {
-        $api_options['keywords'] = $this->get_seo_keywords( $attachment_id );
+        if ( isset( $api_options['explicit_post_id'] ) && ! empty( $api_options['explicit_post_id'] ) ) {
+            $api_options['keywords'] = $this->get_seo_keywords( $attachment_id, $api_options['explicit_post_id'] );
+        } else {
+            $api_options['keywords'] = $this->get_seo_keywords( $attachment_id );
+        }
         if ( ! count( $api_options['keywords'] ) && ( get_option( 'atai_keywords_title' ) === 'yes' ) ) {
           $api_options['keyword_source'] = $this->post_title_seo_keywords( $attachment_id );
         }
@@ -398,7 +402,7 @@ SQL;
      *
      * @return Array of keywords, or empty array if none.
      */
-    public function get_seo_keywords( $attachment_id ) {
+    public function get_seo_keywords( $attachment_id, $explicit_post_id = null ) {
       if ( ( get_option( 'atai_keywords' ) === 'no' ) ) {
         return array();
       }
@@ -414,6 +418,10 @@ SQL;
         $post_id = $post_results[0]->post_parent;
       }
 
+      if ( empty($post_id) && ! empty($explicit_post_id) ) {
+        $post_id = $explicit_post_id;
+      }
+      
       // Fetch keywords from Yoast SEO.
       $keywords = $this->yoast_seo_keywords( $attachment_id, $post_id );
 
@@ -818,7 +826,6 @@ SQL;
   {
     // Ensure SmartCrawl is active
     if (! ATAI_Utility::has_smartcrawl()) {
-      error_log("nope");
       return array();
     }
 

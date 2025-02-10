@@ -1,5 +1,8 @@
 *** AltText.ai Changelog ***
 
+2025-02-07 - version 1.9.92
+* Improves WooCommerce support
+
 2025-02-05 - version 1.9.91
 * Add support for SmartCrawl Pro keywords
 

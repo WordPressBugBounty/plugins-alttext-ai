@@ -208,7 +208,7 @@ class ATAI_Post {
       if ( $overwrite || empty( $alt_text ) ) {
         $should_generate = true;
         $ecomm_data = $atai_attachment->get_ecomm_data( $attachment_id, $post_id );
-        $alt_text = $atai_attachment->generate_alt( $attachment_id, null, array( 'keywords' => $keywords, 'ecomm' => $ecomm_data ) );
+        $alt_text = $atai_attachment->generate_alt( $attachment_id, null, array( 'keywords' => $keywords, 'explicit_post_id' => $post_id, 'ecomm' => $ecomm_data ) );
       }
 
       // Check if generate_alt returned false or an error
@@ -283,28 +283,24 @@ class ATAI_Post {
 
       return false;
     } elseif ( $post->post_type === 'product' && ATAI_Utility::has_woocommerce() ) {
-      return $this->update_product_images( $post_id, $overwrite, $keywords, $is_ajax );
+      $product_response = $this->update_product_images( $post_id, $overwrite, $keywords, false );
     }
 
     $content = $post->post_content;
 
     // Check if content is empty
     if ( empty( $content ) ) {
-      if ( $is_ajax ) {
-        // Set a transient to show a success notice after page reload
-        set_transient( 'atai_enrich_post_content_success', __( '[AltText.ai] Content is empty, no update needed.', 'alttext-ai' ), 60 );
-        wp_send_json_success();
-      }
-
-      return true;
-    }
-
-    // Check if there are any images
-    if ( strpos($content, '<img') === false ) {
-      if ( $is_ajax ) {
-        // Set a transient to show a success notice after page reload
-        set_transient( 'atai_enrich_post_content_success', __( '[AltText.ai] No images were found to update.', 'alttext-ai' ), 60 );
-        wp_send_json_success();
+      if ( isset($product_response) ) {
+          $total_images_found = $product_response['total_images_found'];
+          $num_alttext_generated = $product_response['num_alttext_generated'];
+          if ( $is_ajax ) {
+            set_transient( 'atai_enrich_post_content_success', sprintf( __( '[AltText.ai] Refreshed alt text for %d images (%d generated).', 'alttext-ai' ), $total_images_found, $num_alttext_generated ), 60 );
+            wp_send_json_success();
+          }
+      } elseif ( $is_ajax ) {
+          // Set a transient to show a success notice after page reload
+          set_transient( 'atai_enrich_post_content_success', __( '[AltText.ai] Content is empty, no update needed.', 'alttext-ai' ), 60 );
+          wp_send_json_success();
       }
 
       return true;
@@ -461,7 +457,11 @@ class ATAI_Post {
         $content
       );
     }
-
+    if ( isset($product_response) ) {
+      $total_images_found += $product_response['total_images_found'];
+      $num_alttext_generated += $product_response['num_alttext_generated'];
+    }
+    
     if ( !empty($updated_content) ) {
       wp_update_post( array(
         'ID' => $post_id,

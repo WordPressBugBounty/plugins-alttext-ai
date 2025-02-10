@@ -5,7 +5,7 @@ Tags: image alt text, AI, accessibility, alternative text, image to text
 Requires PHP: 7.0
 Requires at least: 4.7
 Tested up to: 6.7
-Stable tag: 1.9.91
+Stable tag: 1.9.92
 WC requires at least: 3.3
 WC tested up to: 9.2.3
 License: GPLv2 or later
@@ -22,7 +22,7 @@ AltText.ai automatically generates alt text for your images.
 
 **Optimized SEO for WooCommerce:** Our Ecommerce Vision system intelligently includes your product name in the generated alt text.
 
-**Keyword-rich alt text:** Incorporates focus keyphrases from popular SEO plugins using natural language.
+**Keyword-rich alt text:** Seamlessly integrates focus keyphrases from popular SEO plugins, including **Yoast SEO, Rank Math, All in One SEO, SEOPress, The SEO Framework, SmartCrawl, and Squirrly SEO**, ensuring natural language optimization.
 
 **Chat GPT:** Use your own custom ChatGPT prompt to automatically modify the generated alt text.
 
@@ -66,8 +66,8 @@ Added support for SEOPress keywords.
 We now integrate Yoast, AllInOne, and RankMath focus keyphrases for alt text.
 
 == Changelog ==
-= 1.9.91 - 2025-02-05 =
-* Add support for SmartCrawl Pro keywords
+= 1.9.92 - 2025-02-07 =
+* Improves WooCommerce Support
 
 = older versions =
 * see changelog.txt for details
