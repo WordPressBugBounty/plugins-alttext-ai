@@ -1,5 +1,8 @@
 *** AltText.ai Changelog ***
 
+2025-02-21 - version 1.9.93
+* Fixes some edge-cases where other plugins may overwrite the "Update Alt Text" button
+
 2025-02-07 - version 1.9.92
 * Improves WooCommerce support
 
