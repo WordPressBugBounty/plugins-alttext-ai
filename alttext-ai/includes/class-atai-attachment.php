@@ -888,6 +888,9 @@ SQL;
   public function ajax_bulk_generate() {
     check_ajax_referer( 'atai_bulk_generate', 'security' );
 
+    // Check permissions
+    $this->check_attachment_permissions();
+
     global $wpdb;
     $post_id = intval($_REQUEST['post_id'] ?? 0);
     $last_post_id = intval($_REQUEST['last_post_id'] ?? 0);
@@ -1073,6 +1076,9 @@ SQL;
    * @access public
    */
   public function ajax_single_generate() {
+    // Check permissions
+    $this->check_attachment_permissions();
+
     // Bail early if attachment ID does not exist, or ID is not numeric
     if ( ! isset( $_REQUEST['attachment_id'] ) || empty( $_REQUEST['attachment_id'] ) || ! is_numeric( $_REQUEST['attachment_id'] ) ) {
       return;
@@ -1111,6 +1117,9 @@ SQL;
    */
   public function ajax_edit_history() {
     check_ajax_referer( 'atai_edit_history', 'security' );
+    
+    // Check permissions
+    $this->check_attachment_permissions();
 
     $attachment_id = intval( $_REQUEST['attachment_id'] ?? 0 );
     $alt_text = sanitize_text_field( $_REQUEST['alt_text'] ?? '' );
@@ -1131,6 +1140,23 @@ SQL;
   }
 
   /**
+   * Check if the current user has permission to manage attachments
+   *
+   * @since 1.9.94
+   * @access private
+   * @return bool|void Returns true if user has permission, otherwise sends JSON error response and exits
+   */
+  private function check_attachment_permissions() {
+    if ( ! current_user_can( 'upload_files' ) ) {
+      wp_send_json( array(
+        'status' => 'error',
+        'message' => __( 'You do not have permission to manage attachments.', 'alttext-ai' )
+      ) );
+    }
+    return true;
+  }
+
+  /**
    * Check if attachment is eligible for auto-generating ALT text via AJAX
    *
    * @since 1.0.10
@@ -1138,6 +1164,9 @@ SQL;
    */
   public function ajax_check_attachment_eligibility() {
     check_ajax_referer( 'atai_check_attachment_eligibility', 'security' );
+
+    // Check permissions
+    $this->check_attachment_permissions();
 
     $attachment_id =  intval( $_POST['attachment_id'] ?? 0 );
 

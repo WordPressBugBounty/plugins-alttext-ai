@@ -1,5 +1,10 @@
 *** AltText.ai Changelog ***
 
+2025-04-16 - version 1.9.94
+* Security fix (thanks @truonghuuphuc)
+* Improved compatibility with custom themes
+* Performance optimization for Media Library
+
 2025-02-21 - version 1.9.93
 * Fixes some edge-cases where other plugins may overwrite the "Update Alt Text" button
 
