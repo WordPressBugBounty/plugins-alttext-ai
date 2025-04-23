@@ -5,7 +5,7 @@ Tags: image alt text, AI, accessibility, alternative text, image to text
 Requires PHP: 7.0
 Requires at least: 4.7
 Tested up to: 6.7
-Stable tag: 1.9.94
+Stable tag: 1.9.95
 WC requires at least: 3.3
 WC tested up to: 9.2.3
 License: GPLv2 or later
@@ -19,6 +19,8 @@ Automatically sets the descriptive alt text of your images. Boosts your SEO and 
 AltText.ai automatically generates alt text for your images.
 
 **Automatic:** Every uploaded image is analyzed and alt text is automatically added to the image properties.
+
+**Supports Multiple Formats:** Handles JPG, PNG, WebP, SVG, and AVIF images for comprehensive coverage across modern image formats.
 
 **Optimized SEO for WooCommerce:** Our Ecommerce Vision system intelligently includes your product name in the generated alt text.
 
@@ -66,13 +68,13 @@ Added support for SEOPress keywords.
 We now integrate Yoast, AllInOne, and RankMath focus keyphrases for alt text.
 
 == Changelog ==
+= 1.9.95 - 2025-04-23 =
+* Introducing SVG & AVIF support! AltText.Ai is the only platform to support these new formats. Advanced image formats cost 2 credits per image; you can manage this feature in your account settings.
+
 = 1.9.94 - 2025-04-16 =
 * Security fix (thanks @truonghuuphuc)
 * Improved compatibility with custom themes
 * Performance optimization for Media Library
-
-= 1.9.93 - 2025-02-21 =
-* Fixes some edge-cases where other plugins may overwrite the "Update Alt Text" button
 
 = older versions =
 * see changelog.txt for details

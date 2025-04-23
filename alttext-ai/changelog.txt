@@ -1,5 +1,8 @@
 *** AltText.ai Changelog ***
 
+2025-04-23 - version 1.9.95
+* Introducing SVG & AVIF support! AltText.Ai is the only platform to support these new formats. Advanced image formats cost 2 credits per image; you can manage this feature in your account settings.
+
 2025-04-16 - version 1.9.94
 * Security fix (thanks @truonghuuphuc)
 * Improved compatibility with custom themes

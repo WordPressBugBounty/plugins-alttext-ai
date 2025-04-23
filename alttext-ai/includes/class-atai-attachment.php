@@ -241,7 +241,7 @@ class ATAI_Attachment {
       }
     }
 
-    if (!in_array(strtolower($extension), ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'])) {
+    if (!in_array(strtolower($extension), ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'avif', 'svg'])) {
       if ( $context === 'generate' ) {
         ATAI_Utility::log_error(
           sprintf(
@@ -286,6 +286,11 @@ class ATAI_Attachment {
     }
 
     if ($width < 50 || $height < 50) {
+      if (strtolower($extension) === 'svg') {
+        // For SVG files, bypass the dimension check
+        return true;
+      }
+      
       if ( $context === 'generate' ) {
         ATAI_Utility::log_error(
           sprintf(

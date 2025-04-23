@@ -384,6 +384,17 @@
                     <br>
                     <?php esc_html_e( 'Leave blank to process all image types.', 'alttext-ai' ); ?>
                   </p>
+                  <span class="mt-1 text-amber-900/80">  
+                    <?php 
+                      printf(
+                        wp_kses(
+                          __( 'Note: Advanced Image Formats (AVIF, SVG) cost 2 credits per image. You can disable this feature in your <a href="%s" target="_blank" class="font-medium underline">account settings</a>.', 'alttext-ai' ),
+                          array( 'a' => array( 'href' => array(), 'target' => array(), 'class' => array() ) )
+                        ),
+                        esc_url( 'https://alttext.ai/account/edit' )
+                      );
+                    ?>
+                  </span>
                 </div>
                 <div class="flex relative gap-x-3">
                   <div class="flex items-center h-6">
@@ -732,4 +743,3 @@
     <input type="submit" name="submit" value="Save Changes" class="bg-primary-600 hover:bg-primary-700 focus:outline-primary-400 mt-4 box-border inline-flex cursor-pointer appearance-none items-center gap-2 rounded-md border border-solid border-transparent px-5 py-2.5 text-sm font-semibold text-white no-underline shadow-sm transition-colors duration-75 ease-in-out hover:text-white focus:!text-white focus:outline-offset-2 active:border-gray-700 active:!text-white active:!outline-none disabled:focus:outline-transparent disabled:active:border-transparent">
   </form>
 </div>
-
