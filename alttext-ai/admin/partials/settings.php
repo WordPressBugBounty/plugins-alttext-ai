@@ -631,6 +631,34 @@
                     </p>
                   </div>
                 </div>
+                <div class="flex flex-col gap-2">
+                  <div class="flex items-center">
+                    <label for="atai_admin_capability" class="block text-sm font-medium text-gray-900"><?php esc_html_e( 'Who can access AltText.ai menu?', 'alttext-ai' ); ?></label>
+                  </div>
+                  <div class="mt-1">
+                    <select
+                      name="atai_admin_capability"
+                      id="atai_admin_capability"
+                      class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
+                    >
+                      <option value="manage_options" <?php selected( 'manage_options', get_option( 'atai_admin_capability', 'manage_options' ) ); ?>>
+                        <?php esc_html_e( 'Administrators only (recommended)', 'alttext-ai' ); ?>
+                      </option>
+                      <option value="edit_others_posts" <?php selected( 'edit_others_posts', get_option( 'atai_admin_capability', 'manage_options' ) ); ?>>
+                        <?php esc_html_e( 'Editors and Administrators', 'alttext-ai' ); ?>
+                      </option>
+                      <option value="publish_posts" <?php selected( 'publish_posts', get_option( 'atai_admin_capability', 'manage_options' ) ); ?>>
+                        <?php esc_html_e( 'Authors, Editors and Administrators', 'alttext-ai' ); ?>
+                      </option>
+                      <option value="read" <?php selected( 'read', get_option( 'atai_admin_capability', 'manage_options' ) ); ?>>
+                        <?php esc_html_e( 'All logged-in users', 'alttext-ai' ); ?>
+                      </option>
+                    </select>
+                    <p class="mt-1 text-sm text-gray-500">
+                      <?php esc_html_e( 'Control which user roles can access the AltText.ai menu.', 'alttext-ai' ); ?>
+                    </p>
+                  </div>
+                </div>
                 <div class="flex relative gap-x-3">
                   <div class="flex items-center h-6">
                     <input

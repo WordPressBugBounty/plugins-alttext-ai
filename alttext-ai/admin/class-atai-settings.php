@@ -82,11 +82,12 @@ class ATAI_Settings {
 	 * @access   public
    */
 	public function register_settings_pages() {
+    $capability = get_option( 'atai_admin_capability', 'manage_options' );
     // Main page
 		add_menu_page(
 			__( 'AltText.ai WordPress Settings', 'alttext-ai' ),
 			__( 'AltText.ai', 'alttext-ai' ),
-			'manage_options',
+			$capability,
       'atai',
 			array( $this, 'render_settings_page' ),
       'dashicons-format-image'
@@ -96,7 +97,7 @@ class ATAI_Settings {
       'atai',
       __( 'AltText.ai WordPress Settings', 'alttext-ai' ),
       __( 'Settings', 'alttext-ai' ),
-      'manage_options',
+      $capability,
       'atai'
     );
     add_action("admin_head-{$hook_suffix}", array($this, 'enqueue_styles') );
@@ -107,7 +108,7 @@ class ATAI_Settings {
         'atai',
         __( 'Bulk Generate', 'alttext-ai' ),
         __( 'Bulk Generate', 'alttext-ai' ),
-        'manage_options',
+        $capability,
         'atai-bulk-generate',
         array( $this, 'render_bulk_generate_page' )
       );
@@ -121,7 +122,7 @@ class ATAI_Settings {
         'atai',
         __( 'History', 'alttext-ai' ),
         __( 'History', 'alttext-ai' ),
-        'manage_options',
+        $capability,
         'atai-history',
         array( $this, 'render_history_page' )
       );
@@ -134,7 +135,7 @@ class ATAI_Settings {
       'atai',
       __( 'Sync Library', 'alttext-ai' ),
       __( 'Sync Library', 'alttext-ai' ),
-      'manage_options',
+      $capability,
       'atai-csv-import',
       array( $this, 'render_csv_import_page' )
     );
@@ -407,6 +408,15 @@ class ATAI_Settings {
         'default'           => '20',
       )
     );
+
+    register_setting(
+      'atai-settings',
+      'atai_admin_capability',
+      array(
+        'default'           => 'manage_options',
+        'sanitize_callback' => array( $this, 'sanitize_admin_capability' )
+      )
+    );
   }
 
   /**
@@ -443,6 +453,31 @@ class ATAI_Settings {
     }
 
     return sanitize_text_field($input);
+  }
+
+  /**
+   * Sanitize the admin capability setting.
+   *
+   * @since 1.10.0
+   * @access public
+   *
+   * @param string $capability The capability to sanitize.
+   * @return string Sanitized capability.
+   */
+  public function sanitize_admin_capability( $capability ) {
+    $valid_capabilities = array(
+      'manage_options',    // Administrators only
+      'edit_others_posts', // Editors and Administrators
+      'publish_posts',     // Authors, Editors and Administrators (not Contributors)
+      'read'               // All logged-in users
+    );
+
+    // If the submitted capability is not in our valid list, default to 'manage_options'
+    if ( ! in_array( $capability, $valid_capabilities, true ) ) {
+      return 'manage_options';
+    }
+
+    return $capability;
   }
 
   /**
