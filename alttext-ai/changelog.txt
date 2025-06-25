@@ -1,5 +1,8 @@
 *** AltText.ai Changelog ***
 
+2025-06-24 - version 1.10.1
+* Fix potential bulk generation lockups on small images
+
 2025-06-06 - version 1.10.0
 * Added: Configurable admin menu capability - Site admins can now control which user roles can access the AltText.ai admin menu
 

@@ -89,20 +89,23 @@ class ATAI_Settings {
 			__( 'AltText.ai', 'alttext-ai' ),
 			$capability,
       'atai',
-			array( $this, 'render_settings_page' ),
+      array( $this, 'render_settings_page' ),
       'dashicons-format-image'
-		);
+    );
 
+    // Settings submenu item
     $hook_suffix = add_submenu_page(
       'atai',
-      __( 'AltText.ai WordPress Settings', 'alttext-ai' ),
+      __( 'Settings', 'alttext-ai' ),
       __( 'Settings', 'alttext-ai' ),
       $capability,
-      'atai'
+      'atai',
+      array( $this, 'render_settings_page' ),
+      10
     );
-    add_action("admin_head-{$hook_suffix}", array($this, 'enqueue_styles') );
+    add_action( "admin_head-{$hook_suffix}", array( $this, 'enqueue_styles' ) );
 
-    // Bulk Generate Page
+    // Bulk Generate submenu item
     if ( ATAI_Utility::get_api_key() ) {
       $hook_suffix = add_submenu_page(
         'atai',
@@ -110,13 +113,13 @@ class ATAI_Settings {
         __( 'Bulk Generate', 'alttext-ai' ),
         $capability,
         'atai-bulk-generate',
-        array( $this, 'render_bulk_generate_page' )
+        array( $this, 'render_bulk_generate_page' ),
+        20
       );
-
-      add_action("admin_head-{$hook_suffix}", array($this, 'enqueue_styles') );
+      add_action( "admin_head-{$hook_suffix}", array( $this, 'enqueue_styles' ) );
     }
 
-    // History Page
+    // History submenu item
     if ( ATAI_Utility::get_api_key() ) {
       $hook_suffix = add_submenu_page(
         'atai',
@@ -124,23 +127,23 @@ class ATAI_Settings {
         __( 'History', 'alttext-ai' ),
         $capability,
         'atai-history',
-        array( $this, 'render_history_page' )
+        array( $this, 'render_history_page' ),
+        30
       );
-
-      add_action("admin_head-{$hook_suffix}", array($this, 'enqueue_styles') );
+      add_action( "admin_head-{$hook_suffix}", array( $this, 'enqueue_styles' ) );
     }
 
-    // CSV Import Page
+    // Sync Library page
     $hook_suffix = add_submenu_page(
       'atai',
       __( 'Sync Library', 'alttext-ai' ),
       __( 'Sync Library', 'alttext-ai' ),
       $capability,
       'atai-csv-import',
-      array( $this, 'render_csv_import_page' )
+      array( $this, 'render_csv_import_page' ),
+      40
     );
-
-    add_action("admin_head-{$hook_suffix}", array($this, 'enqueue_styles') );
+    add_action( "admin_head-{$hook_suffix}", array( $this, 'enqueue_styles' ) );
 	}
 
   /**
@@ -291,6 +294,15 @@ class ATAI_Settings {
       array(
         'sanitize_callback' => array( $this, 'sanitize_yes_no_checkbox' ),
         'default'           => 'no',
+      )
+    );
+
+    register_setting(
+			'atai-settings',
+      'atai_admin_capability',
+      array(
+        'sanitize_callback' => 'sanitize_key',
+        'default'           => 'manage_options',
       )
     );
 

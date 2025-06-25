@@ -1,11 +1,11 @@
 === Alt Text AI - Automatically generate image alt text for SEO and accessibility  ===
 Contributors: alttextai,junaidkbr
 Donate link: https://alttext.ai/
-Tags: image alt text, AI, accessibility, alternative text, image to text
+Tags: image alt text, AI,  accessibility, alternative text, image to text
 Requires PHP: 7.0
 Requires at least: 4.7
 Tested up to: 6.7
-Stable tag: 1.10.0
+Stable tag: 1.10.1
 WC requires at least: 3.3
 WC tested up to: 9.2.3
 License: GPLv2 or later
@@ -68,6 +68,9 @@ Added support for SEOPress keywords.
 We now integrate Yoast, AllInOne, and RankMath focus keyphrases for alt text.
 
 == Changelog ==
+= 1.10.1 - 2025-06-24 =
+* Fix potential bulk generation lockups on small images
+
 = 1.10.0 - 2025-06-06 =
 * Added: Configurable admin menu capability - Site admins can now control which user roles can access the AltText.ai admin menu
 

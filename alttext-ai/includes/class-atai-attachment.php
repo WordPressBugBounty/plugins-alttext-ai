@@ -167,6 +167,8 @@ class ATAI_Attachment {
    * @return boolean  True if eligible, false otherwise.
    */
   public function is_attachment_eligible( $attachment_id, $context = 'generate' ) {
+    // Determine if we should log errors (skip logging during bulk operations)
+    $should_log = ($context !== 'bulk');
 
     /** Check user-defined filter for eligibility. Bail early if this attachment is not eligible. **/
     $custom_skip = apply_filters( 'atai_skip_attachment', false, $attachment_id );
@@ -226,7 +228,7 @@ class ATAI_Attachment {
     if (! empty($file_type_extensions)) {
       $valid_extensions = array_map('trim', explode(',', $file_type_extensions));
       if (! in_array(strtolower($extension), $valid_extensions)) {
-        if ( $context === 'generate' ) {
+        if ( $should_log ) {
           ATAI_Utility::log_error(
             sprintf(
               '<a href="%s" target="_blank">Image #%d</a>: %s (%s)',
@@ -242,7 +244,7 @@ class ATAI_Attachment {
     }
 
     if (!in_array(strtolower($extension), ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'avif', 'svg'])) {
-      if ( $context === 'generate' ) {
+      if ( $should_log ) {
         ATAI_Utility::log_error(
           sprintf(
             '<a href="%s" target="_blank">Image #%d</a>: %s (%s)',
@@ -257,7 +259,7 @@ class ATAI_Attachment {
     }
 
     if ($size === null || $size === false) {
-      if ($context === 'generate' && get_option('atai_skip_filenotfound') === 'yes') {
+      if ($should_log && get_option('atai_skip_filenotfound') === 'yes') {
         ATAI_Utility::log_error(
           sprintf(
             '<a href="%s" target="_blank">Image #%d</a>: %s',
@@ -271,7 +273,7 @@ class ATAI_Attachment {
     }
 
     if ($size > 16) {
-      if ( $context === 'generate' ) {
+      if ( $should_log ) {
         ATAI_Utility::log_error(
           sprintf(
             '<a href="%s" target="_blank">Image #%d</a>: %s (%.2f MB)',
@@ -291,7 +293,7 @@ class ATAI_Attachment {
         return true;
       }
       
-      if ( $context === 'generate' ) {
+      if ( $should_log ) {
         ATAI_Utility::log_error(
           sprintf(
             '<a href="%s" target="_blank">Image #%d</a>: %s (%dx%d)',
@@ -908,7 +910,7 @@ SQL;
     $wc_products = sanitize_text_field( $_REQUEST['wcProducts'] ?? '0' );
     $wc_only_featured = sanitize_text_field( $_REQUEST['wcOnlyFeatured'] ?? '0' );
     $batch_id = sanitize_text_field( $_REQUEST['batchId'] ?? '0' );
-    $images_successful  = $loop_count = 0;
+    $images_successful = $images_skipped = $loop_count = 0;
     $redirect_url = admin_url( 'admin.php?page=atai-bulk-generate' );
     $recursive = true;
 
@@ -993,6 +995,24 @@ SQL;
       if ( defined( 'ATAI_BULK_DEBUG' ) ) {
         ATAI_Utility::log_error( sprintf("BulkGenerate: Attachment ID %d", $attachment_id) );
       }
+      
+      // Skip if attachment is not eligible
+      if ( ! $this->is_attachment_eligible( $attachment_id, 'bulk' ) ) {
+        $images_skipped++;
+        $last_post_id = $attachment_id;  // IMPORTANT: Update last_post_id to prevent infinite loop
+        
+        if ( $mode === 'bulk-select' ) {
+          // Remove the attachment ID from the transient
+          $images_to_update = array_diff( $images_to_update, array( $attachment_id ) );
+          set_transient( 'alttext_bulk_select_generate_' . $batch_id, $images_to_update, 2048 );
+        }
+        
+        if ( ++$loop_count >= $query_limit ) {
+          break;
+        }
+        continue;
+      }
+      
       $response = $this->generate_alt( $attachment_id, null, array( 'keywords' => $keywords, 'negative_keywords' => $negative_keywords ) );
 
       if ( $response === 'insufficient_credits' ) {
@@ -1032,11 +1052,17 @@ SQL;
       $recursive = false;
     }
 
+    // Prepare response message based on whether we have skipped images
+    $message = $images_skipped > 0 
+      ? sprintf(__('Images processed: %d updated, %d skipped.', 'alttext-ai'), $images_successful, $images_skipped)
+      : __('Images successfully updated.', 'alttext-ai');
+      
     wp_send_json( array(
       'status'          => 'success',
-      'message'         => __( 'Images successfully updated.', 'alttext-ai' ),
+      'message'         => $message,
       'process_count'   => $loop_count,
       'success_count'   => $images_successful,
+      'skipped_count'   => $images_skipped,
       'last_post_id'    => $last_post_id,
       'recursive'       => $recursive,
       'redirect_url' => $redirect_url,
