@@ -370,6 +370,15 @@ class ATAI_Settings {
 
     register_setting(
 			'atai-settings',
+      'atai_excluded_post_types',
+      array(
+        'sanitize_callback' => array( $this, 'sanitize_post_type_list' ),
+        'default'           => '',
+      )
+    );
+
+    register_setting(
+			'atai-settings',
       'atai_no_credit_warning',
       array(
         'sanitize_callback' => array( $this, 'sanitize_yes_no_checkbox' ),
@@ -504,6 +513,28 @@ class ATAI_Settings {
    */
   public function sanitize_file_extension_list( $input ) {
     return sanitize_text_field( str_replace( '.', '', strtolower( $input ) ) );
+  }
+
+  /**
+   * Sanitizes a post type list to ensure it contains valid post type names.
+   *
+   * @since 1.10.2
+   * @access public
+   *
+   * @param string $input The post type list string. Example: "proof, submission"
+   *
+   * @return string Returns the sanitized post type list.
+   */
+  public function sanitize_post_type_list( $input ) {
+    if ( empty( $input ) ) {
+      return '';
+    }
+    
+    $post_types = array_map( 'trim', explode( ',', $input ) );
+    $sanitized_post_types = array_map( 'sanitize_key', $post_types );
+    $filtered_post_types = array_filter( $sanitized_post_types );
+    
+    return implode( ',', $filtered_post_types );
   }
 
   /**

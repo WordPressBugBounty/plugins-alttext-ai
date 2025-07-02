@@ -4,8 +4,8 @@ Donate link: https://alttext.ai/
 Tags: image alt text, AI,  accessibility, alternative text, image to text
 Requires PHP: 7.0
 Requires at least: 4.7
-Tested up to: 6.7
-Stable tag: 1.10.1
+Tested up to: 6.8
+Stable tag: 1.10.3
 WC requires at least: 3.3
 WC tested up to: 9.2.3
 License: GPLv2 or later
@@ -68,6 +68,12 @@ Added support for SEOPress keywords.
 We now integrate Yoast, AllInOne, and RankMath focus keyphrases for alt text.
 
 == Changelog ==
+= 1.10.3 - 2025-07-02 =
+* Added: Post type exclusion feature - Exclude images attached to specific post types from alt text generation
+* Added: Bulk operation support for post type exclusions
+* Fixed: Plugin conflict with Phoenix Media Rename causing fatal errors during bulk generation
+* Tested: WordPress 6.8 compatibility
+
 = 1.10.1 - 2025-06-24 =
 * Fix potential bulk generation lockups on small images
 

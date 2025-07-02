@@ -396,6 +396,23 @@
                     ?>
                   </span>
                 </div>
+                <div>
+                  <label for="atai_excluded_post_types" class="block text-sm leading-6 text-gray-600"><?php esc_html_e( 'Exclude images attached to these post types:', 'alttext-ai' ); ?></label>
+                  <div class="mt-2">
+                    <input
+                      type="text"
+                      name="atai_excluded_post_types"
+                      id="atai_excluded_post_types"
+                      class="block py-1.5 w-full text-gray-900 rounded-md border-0 ring-1 ring-inset ring-gray-300 shadow-sm sm:text-sm sm:leading-6 focus:ring-2 focus:ring-inset placeholder:text-gray-400 focus:ring-primary-600"
+                      value="<?php echo esc_html ( get_option( 'atai_excluded_post_types' ) ); ?>"
+                    >
+                  </div>
+                  <p class="mt-1 text-gray-500">
+                    <?php esc_html_e( 'Separate multiple post types with commas. Example: proof,submission', 'alttext-ai' ); ?>
+                    <br>
+                    <?php esc_html_e( 'Leave blank to process images from all post types.', 'alttext-ai' ); ?>
+                  </p>
+                </div>
                 <div class="flex relative gap-x-3">
                   <div class="flex items-center h-6">
                     <input

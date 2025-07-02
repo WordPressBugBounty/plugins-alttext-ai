@@ -1,5 +1,11 @@
 *** AltText.ai Changelog ***
 
+2025-07-02 - version 1.10.3
+* Added: Post type exclusion feature - Exclude images attached to specific post types from alt text generation
+* Added: Bulk operation support for post type exclusions
+* Fixed: Plugin conflict with Phoenix Media Rename causing fatal errors during bulk generation
+* Tested: WordPress 6.8 compatibility
+
 2025-06-24 - version 1.10.1
 * Fix potential bulk generation lockups on small images
 

@@ -157,6 +157,35 @@ class ATAI_Attachment {
   }
 
   /**
+   * Check if an attachment should be excluded based on its parent post type.
+   *
+   * @since 1.10.2
+   * @access private
+   *
+   * @param integer $attachment_id  ID of the attachment.
+   *
+   * @return boolean  True if should be excluded, false otherwise.
+   */
+  private function is_attachment_excluded_by_post_type( $attachment_id ) {
+    $excluded_post_types = get_option( 'atai_excluded_post_types' );
+    
+    if ( empty( $excluded_post_types ) ) {
+      return false;
+    }
+    
+    $post_types = array_map( 'trim', explode( ',', $excluded_post_types ) );
+    $parent_id = wp_get_post_parent_id( $attachment_id );
+    
+    if ( ! $parent_id ) {
+      return false;
+    }
+    
+    $parent_post_type = get_post_type( $parent_id );
+    
+    return in_array( $parent_post_type, $post_types );
+  }
+
+  /**
    * Check if an attachment is eligible for alt text generation.
    *
    * @since 1.0.10
@@ -176,6 +205,25 @@ class ATAI_Attachment {
       return false;
     }
 
+    /** Check if attachment should be excluded based on parent post type. **/
+    if ( $this->is_attachment_excluded_by_post_type( $attachment_id ) ) {
+      if ( $should_log ) {
+        $parent_id = wp_get_post_parent_id( $attachment_id );
+        $parent_post_type = get_post_type( $parent_id );
+        $attachment_edit_url = get_edit_post_link($attachment_id);
+        ATAI_Utility::log_error(
+          sprintf(
+            '<a href="%s" target="_blank">Image #%d</a>: %s (%s)',
+            esc_url($attachment_edit_url),
+            (int) $attachment_id,
+            esc_html__('Excluded post type in user settings.', 'alttext-ai'),
+            esc_html($parent_post_type)
+          )
+        );
+      }
+      return false;
+    }
+
     $meta = wp_get_attachment_metadata( $attachment_id );
     $upload_info = wp_get_upload_dir();
 
@@ -186,6 +234,10 @@ class ATAI_Attachment {
       }
       else {
         $meta = wp_generate_attachment_metadata( $attachment_id, $file );
+        // Defensive fix: ensure metadata is always an array to prevent conflicts with other plugins
+        if ( $meta === false || ! is_array( $meta ) ) {
+          $meta = array('width' => 100, 'height' => 100); // Default values assuming this is a valid image
+        }
       }
     }
 
@@ -871,6 +923,11 @@ SQL;
       return;
     }
 
+    // Check if attachment is eligible (including post type exclusions)
+    if ( ! $this->is_attachment_eligible( $attachment_id ) ) {
+      return;
+    }
+
     $this->generate_alt( $attachment_id );
 
     // For WPML, we have to also generate the alt for the translated image attachments:
@@ -885,6 +942,7 @@ SQL;
       }
     }
   }
+
 
   /**
    * Generate alt text in bulk
@@ -960,6 +1018,14 @@ SQL;
       if ($wc_only_featured === '1') {
         $images_to_update_sql = $images_to_update_sql . " AND (EXISTS(SELECT 1 FROM {$wpdb->postmeta} pm2 WHERE pm2.post_id = p.post_parent and pm2.meta_key = '_thumbnail_id' and CAST(pm2.meta_value as UNSIGNED) = p.ID))";
       }
+
+      // Exclude images attached to specific post types
+      $excluded_post_types = get_option( 'atai_excluded_post_types' );
+      if ( ! empty( $excluded_post_types ) ) {
+        $post_types = array_map( 'trim', explode( ',', $excluded_post_types ) );
+        $post_types_placeholders = implode( ',', array_fill( 0, count( $post_types ), '%s' ) );
+        $images_to_update_sql = $images_to_update_sql . " AND (p.post_parent = 0 OR NOT EXISTS(SELECT 1 FROM {$wpdb->posts} p3 WHERE p3.ID = p.post_parent AND p3.post_type IN ($post_types_placeholders)))";
+      }
     }
 
     if ( $mode === 'bulk-select' ) {
@@ -974,8 +1040,17 @@ SQL;
       }
     } else {
       $images_to_update_sql = $images_to_update_sql . " GROUP BY p.ID ORDER BY p.ID LIMIT %d";
+      
+      // Handle prepared statement with excluded post types
+      $prepare_params = array();
+      if ( ! empty( $excluded_post_types ) ) {
+        $prepare_params = array_merge( $post_types, array( $query_limit ) );
+      } else {
+        $prepare_params = array( $query_limit );
+      }
+      
       // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,,WordPress.DB.PreparedSQL.NotPrepared
-      $images_to_update = $wpdb->get_results( $wpdb->prepare( $images_to_update_sql, $query_limit) );
+      $images_to_update = $wpdb->get_results( $wpdb->prepare( $images_to_update_sql, $prepare_params ) );
     }
 
     if ( count( $images_to_update ) == 0 ) {

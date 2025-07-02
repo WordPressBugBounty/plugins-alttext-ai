@@ -91,8 +91,22 @@ SQL;
       $all_images_query = $all_images_query . " AND (EXISTS(SELECT 1 FROM {$wpdb->postmeta} pm2 WHERE pm2.post_id = p.post_parent and pm2.meta_key = '_thumbnail_id' and CAST(pm2.meta_value as UNSIGNED) = p.ID))";
     }
 
+    // Exclude images attached to specific post types
+    $excluded_post_types = get_option( 'atai_excluded_post_types' );
+    $prepare_args = array();
+    if ( ! empty( $excluded_post_types ) ) {
+      $post_types = array_map( 'trim', explode( ',', $excluded_post_types ) );
+      $post_types_placeholders = implode( ',', array_fill( 0, count( $post_types ), '%s' ) );
+      $all_images_query = $all_images_query . " AND (p.post_parent = 0 OR NOT EXISTS(SELECT 1 FROM {$wpdb->posts} p3 WHERE p3.ID = p.post_parent AND p3.post_type IN ($post_types_placeholders)))";
+      $prepare_args = $post_types;
+    }
+
     // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-    $all_images_count = $images_count = (int) $wpdb->get_results( $all_images_query )[0]->total_images;
+    if ( ! empty( $prepare_args ) ) {
+      $all_images_count = $images_count = (int) $wpdb->get_results( $wpdb->prepare( $all_images_query, $prepare_args ) )[0]->total_images;
+    } else {
+      $all_images_count = $images_count = (int) $wpdb->get_results( $all_images_query )[0]->total_images;
+    }
     $images_missing_alt_text_count = 0;
 
     // Images without alt text
@@ -124,8 +138,17 @@ SQL;
       $images_without_alt_text_sql = $images_without_alt_text_sql . " AND (EXISTS(SELECT 1 FROM {$wpdb->postmeta} pm2 WHERE pm2.post_id = p.post_parent and pm2.meta_key = '_thumbnail_id' and CAST(pm2.meta_value as UNSIGNED) = p.ID))";
     }
 
+    // Exclude images attached to specific post types (for missing alt text query)
+    if ( ! empty( $excluded_post_types ) ) {
+      $images_without_alt_text_sql = $images_without_alt_text_sql . " AND (p.post_parent = 0 OR NOT EXISTS(SELECT 1 FROM {$wpdb->posts} p3 WHERE p3.ID = p.post_parent AND p3.post_type IN ($post_types_placeholders)))";
+    }
+
     // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-    $images_missing_alt_text_count = (int) $wpdb->get_results( $images_without_alt_text_sql )[0]->total_images;
+    if ( ! empty( $prepare_args ) ) {
+      $images_missing_alt_text_count = (int) $wpdb->get_results( $wpdb->prepare( $images_without_alt_text_sql, $prepare_args ) )[0]->total_images;
+    } else {
+      $images_missing_alt_text_count = (int) $wpdb->get_results( $images_without_alt_text_sql )[0]->total_images;
+    }
 
     if ( $mode === 'missing' ) {
       $images_count = $images_missing_alt_text_count;
