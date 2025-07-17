@@ -1,5 +1,8 @@
 *** AltText.ai Changelog ***
 
+2025-07-17 - version 1.10.4
+* Added: You can now choose regional variants for English (American/British) and Portuguese (Brazil/Portugal). Visit Settings → AltText.ai to select your preferred variant.
+
 2025-07-02 - version 1.10.3
 * Added: Post type exclusion feature - Exclude images attached to specific post types from alt text generation
 * Added: Bulk operation support for post type exclusions

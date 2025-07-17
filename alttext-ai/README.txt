@@ -5,7 +5,7 @@ Tags: image alt text, AI,  accessibility, alternative text, image to text
 Requires PHP: 7.0
 Requires at least: 4.7
 Tested up to: 6.8
-Stable tag: 1.10.3
+Stable tag: 1.10.4
 WC requires at least: 3.3
 WC tested up to: 9.2.3
 License: GPLv2 or later
@@ -68,6 +68,10 @@ Added support for SEOPress keywords.
 We now integrate Yoast, AllInOne, and RankMath focus keyphrases for alt text.
 
 == Changelog ==
+
+= 1.10.4 - 2025-07-17 =
+* Added: You can now choose regional variants for English (American/British) and Portuguese (Brazil/Portugal). Visit Settings → AltText.ai to select your preferred variant.
+
 = 1.10.3 - 2025-07-02 =
 * Added: Post type exclusion feature - Exclude images attached to specific post types from alt text generation
 * Added: Bulk operation support for post type exclusions
