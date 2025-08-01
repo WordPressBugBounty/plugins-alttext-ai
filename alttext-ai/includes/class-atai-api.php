@@ -190,6 +190,27 @@ class ATAI_API {
         return 'insufficient_credits';
       }
 
+      // Check if error indicates URL access issues (when site is marked as public but URLs aren't accessible)
+      if ( get_option( 'atai_public' ) === 'yes' && 
+           ( strpos( strtolower( $error_message ), 'unable to access' ) !== false || 
+             strpos( strtolower( $error_message ), 'url not accessible' ) !== false ||
+             strpos( strtolower( $error_message ), 'cannot fetch' ) !== false ||
+             strpos( strtolower( $error_message ), 'failed to fetch' ) !== false ||
+             strpos( strtolower( $error_message ), 'failed to open' ) !== false ||
+             strpos( strtolower( $error_message ), 'tcp connection' ) !== false ||
+             strpos( strtolower( $error_message ), 'getaddrinfo' ) !== false ||
+             strpos( strtolower( $error_message ), 'name or service not known' ) !== false ||
+             strpos( strtolower( $error_message ), 'image url' ) !== false ) ) {
+        
+        // Set a transient to show the suggestion
+        set_transient( 'atai_url_access_suggestion_' . get_current_user_id(), array(
+          'error' => $error_message,
+          'attachment_id' => $attachment_id
+        ), 3600 );
+        
+        return 'url_access_error';
+      }
+
       error_log( print_r( $response, true ) );
 
       ATAI_Utility::log_error(
@@ -203,6 +224,37 @@ class ATAI_API {
       );
 
       return false;
+    } elseif ( substr( $response_code, 0, 1 ) == '4' && get_option( 'atai_public' ) === 'yes' ) {
+      // 4xx errors when site is marked as public likely indicate URL access issues
+      error_log( print_r( $response, true ) );
+      
+      // Extract error message if available
+      $error_message = '';
+      if ( isset( $response_body['message'] ) ) {
+        $error_message = $response_body['message'];
+      } elseif ( isset( $response_body['error'] ) ) {
+        $error_message = $response_body['error'];
+      } else {
+        $error_message = sprintf( 'HTTP %d error', (int) $response_code );
+      }
+
+      ATAI_Utility::log_error(
+        sprintf(
+          '[%d] <a href="%s" target="_blank">Image #%d</a>: %s',
+          (int) $response_code,
+          esc_url( $attachment_edit_url ),
+          (int) $attachment_id,
+          esc_html( $error_message )
+        )
+      );
+
+      // Set a transient to show the suggestion
+      set_transient( 'atai_url_access_suggestion_' . get_current_user_id(), array(
+        'error' => $error_message,
+        'attachment_id' => $attachment_id
+      ), 3600 );
+      
+      return 'url_access_error';
     } elseif ( substr( $response_code, 0, 1 ) != '2' ) {
       error_log( print_r( $response, true ) );
 

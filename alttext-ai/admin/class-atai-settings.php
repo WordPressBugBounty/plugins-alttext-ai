@@ -693,12 +693,35 @@ class ATAI_Settings {
       return;
     }
 
-    $current_url = ( is_ssl() ? 'https://' : 'http://' ) . sanitize_text_field($_SERVER['HTTP_HOST']) . sanitize_url($_SERVER['REQUEST_URI']);
+    $current_url = ( is_ssl() ? 'https://' : 'http://' ) . wp_parse_url(home_url(), PHP_URL_HOST) . sanitize_url($_SERVER['REQUEST_URI']);
     $updated_url = remove_query_arg( 'api_key_missing', $current_url );
 
     if ( $current_url !== $updated_url ) {
       wp_safe_redirect( $updated_url );
       exit;
     }
+  }
+
+  public function ajax_update_public_setting() {
+    // Verify nonce
+    if ( ! wp_verify_nonce( $_POST['security'], 'atai_update_public_setting' ) ) {
+      wp_send_json_error( __( 'Security check failed.', 'alttext-ai' ) );
+    }
+
+    // Check user capabilities
+    if ( ! current_user_can( 'manage_options' ) ) {
+      wp_send_json_error( __( 'Insufficient permissions.', 'alttext-ai' ) );
+    }
+
+    // Sanitize and update the setting
+    $atai_public = sanitize_text_field( $_POST['atai_public'] ?? 'no' );
+    $atai_public = in_array( $atai_public, array( 'yes', 'no' ) ) ? $atai_public : 'no';
+    
+    update_option( 'atai_public', $atai_public );
+    
+    wp_send_json_success( array(
+      'message' => __( 'Setting updated successfully.', 'alttext-ai' ),
+      'new_value' => $atai_public
+    ) );
   }
 }

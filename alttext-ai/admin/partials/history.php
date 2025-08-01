@@ -100,7 +100,7 @@ SQL
                 <div class="sm:flex sm:items-center sm:gap-x-3">
                   <textarea id="edit-history-input-<?php echo esc_html($attachment_id); ?>" rows="4" maxlength="1024" class="block w-full rounded-md border-1 py-1.5 text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6 resize-none"><?php echo esc_html($alt_text); ?></textarea>
                   <div class="flex flex-col">
-                    <button type="button" class="rounded bg-primary-50 border-none cursor-pointer mt-1 sm:mt-0 px-2 py-1 text-sm font-semibold text-primary-500 shadow-sm hover:bg-primary-100 disabled:cursor-not-allowed disabled:opacity-30" data-attachment-id="<?php echo esc_html($attachment_id); ?>" data-edit-history-trigger>Update</button>
+                    <button type="button" class="atai-button light-blue cursor-pointer mt-1 sm:mt-0 px-2 py-1 shadow-sm" data-attachment-id="<?php echo esc_html($attachment_id); ?>" data-edit-history-trigger>Update</button>
                     <span id="edit-history-success-<?php echo esc_html($attachment_id); ?>" class="hidden absolute mt-8 font-semibold text-lime-600">Updated!</span>
                   </div>
                 </div>

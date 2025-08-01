@@ -75,7 +75,7 @@
             <p class="text-center mx-auto hidden items-center gap-1.5 group-data-[file-loaded=true]:inline-flex">File added, import to continue.</p>
         </div>
         <div class="mt-4">
-          <input type="submit" name="submit" value="Import" class="bg-primary-600 hover:bg-primary-700 focus:outline-primary-400 mt-4 box-border inline-flex cursor-pointer appearance-none items-center gap-2 rounded-md border border-solid border-transparent px-5 py-2.5 text-sm font-semibold text-white no-underline shadow-sm transition-colors duration-75 ease-in-out hover:text-white focus:!text-white focus:outline-offset-2 active:border-gray-700 active:!text-white active:!outline-none disabled:focus:outline-transparent disabled:active:border-transparent">
+          <input type="submit" name="submit" value="Import" class="atai-button blue mt-4 cursor-pointer appearance-none no-underline shadow-sm">
         </div>
       </form>
     </div>

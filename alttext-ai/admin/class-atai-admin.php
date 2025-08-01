@@ -76,6 +76,7 @@ class ATAI_Admin {
       'security_enrich_post_content_transient'  => wp_create_nonce( 'atai_enrich_post_content_transient' ),
       'security_update_toggle'                  => wp_create_nonce( 'atai_update_toggle' ),
       'security_check_attachment_eligibility'   => wp_create_nonce( 'atai_check_attachment_eligibility' ),
+      'security_update_public_setting'          => wp_create_nonce( 'atai_update_public_setting' ),
       'can_user_upload_files'                   => current_user_can( 'upload_files' ),
       'should_update_title'                     => get_option( 'atai_update_title' ),
       'should_update_caption'                   => get_option( 'atai_update_caption' ),

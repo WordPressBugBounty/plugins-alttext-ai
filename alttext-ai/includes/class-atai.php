@@ -195,6 +195,7 @@ class ATAI {
     $this->loader->add_action( 'admin_notices', $settings, 'display_insufficient_credits_notice' );
     $this->loader->add_action( 'admin_notices', $settings, 'display_api_key_missing_notice' );
     $this->loader->add_action( 'wp_ajax_atai_expire_insufficient_credits_notice', $settings, 'expire_insufficient_credits_notice' );
+    $this->loader->add_action( 'wp_ajax_atai_update_public_setting', $settings, 'ajax_update_public_setting' );
 
     $this->loader->add_filter( 'pre_update_option_atai_api_key', $settings, 'save_api_key', 10, 2 );
 

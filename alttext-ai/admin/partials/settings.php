@@ -113,7 +113,7 @@
     <?php settings_fields( 'atai-settings' ); ?>
     <?php do_settings_sections( 'atai-settings' ); ?>
 
-    <input type="submit" name="submit" value="Save Changes" class="bg-primary-600 hover:bg-primary-700 focus:outline-primary-400 mt-4 box-border inline-flex cursor-pointer appearance-none items-center gap-2 rounded-md border border-solid border-transparent px-5 py-2.5 text-sm font-semibold text-white no-underline shadow-sm transition-colors duration-75 ease-in-out hover:text-white focus:!text-white focus:outline-offset-2 active:border-gray-700 active:!text-white active:!outline-none disabled:focus:outline-transparent disabled:active:border-transparent">
+    <input type="submit" name="submit" value="Save Changes" class="atai-button blue mt-4 cursor-pointer appearance-none no-underline shadow-sm">
     <div class="mt-4 space-y-4 border-b-0 border-t border-solid divide-x-0 divide-y divide-solid sm:space-y-6 border-x-0 border-gray-900/10 divide-gray-900/10">
       <div class="">
         <div class="pb-12 mt-4 space-y-8 sm:pb-0 sm:space-y-0 sm:border-t">
@@ -132,14 +132,15 @@
                 <input
                   type="submit"
                   name="handle_api_key"
-                  class="relative inline-flex items-center gap-x-1.5 px-3 py-2 no-underline border-gray-400 text-white border-none cursor-pointer text-sm rounded-md border font-base shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 whitespace-nowrap <?php echo ( ATAI_Utility::get_api_key() ) ? 'bg-gray-600 hover:bg-gray-700' : 'bg-primary-600 hover:bg-primary-700' ?>"
+                  class="<?php echo ( ATAI_Utility::get_api_key() ) ? 'atai-button black' : 'atai-button blue'; ?> relative no-underline cursor-pointer shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 whitespace-nowrap"
                   value="<?php echo ( ATAI_Utility::get_api_key() ) ? esc_attr__( 'Clear API Key', 'alttext-ai' ) : esc_attr__( 'Add API Key', 'alttext-ai' ); ?>"
                   <?php echo ( $has_file_based_api_key ) ? 'disabled' : null; ?>
                 >
               </div>
               <div class="mt-4 max-w-lg">
                 <?php if ( ! ATAI_Utility::get_api_key() ) : ?>
-                  <p class="py-2 px-4 leading-relaxed bg-gray-100 rounded-md border border-gray-300 sm:p-4">
+                  <div class="bg-gray-900/15 p-px rounded-lg">
+                    <p class="py-2 px-4 leading-relaxed bg-gray-100 rounded-lg sm:p-4 m-0">
                     <?php
                       printf (
                         wp_kses(
@@ -149,9 +150,11 @@
                         esc_url( 'https://alttext.ai/account/api_keys' )
                       );
                     ?>
-                  </p>
+                    </p>
+                  </div>
                 <?php elseif ( ATAI_Utility::get_api_key() && $this->account === false ) : ?>
-                  <p class="py-2 px-4 font-semibold leading-relaxed text-red-600 bg-red-100 rounded-md border border-red-200 sm:p-4">
+                  <div class="bg-red-900/15 p-px rounded-lg">
+                    <p class="py-2 px-4 font-semibold leading-relaxed text-red-600 bg-red-100 rounded-lg sm:p-4 m-0">
                     <?php
                       printf (
                         wp_kses(
@@ -161,9 +164,11 @@
                         esc_url( 'https://alttext.ai/account/api_keys' )
                       );
                     ?>
-                  </p>
+                    </p>
+                  </div>
                 <?php else : ?>
-                  <p class="py-2 px-4 leading-relaxed rounded-md border sm:p-4 bg-primary-100 border-primary-200">
+                  <div class="bg-primary-900/15 p-px rounded-lg">
+                    <p class="py-2 m-0 px-4 leading-relaxed bg-primary-100 rounded-lg sm:p-4">
                     <?php
                       if (! $this->account['whitelabel']) {
                         printf(
@@ -197,7 +202,8 @@
                         );
                       }
                     ?>
-                  </p>
+                    </p>
+                  </div>
                 <?php endif; ?>
               </div>
             </div>
@@ -758,7 +764,7 @@
             </div>
           </div>
 
-          <div class="sm:grid sm:grid-cols-3 sm:gap-4 sm:py-4">
+          <div class="sm:grid sm:grid-cols-3 sm:gap-4 sm:py-4" id="atai_error_logs_container">
             <div class="text-sm font-semibold leading-6 text-gray-900" aria-hidden="true"><?php esc_html_e( 'Error Logs', 'alttext-ai' ); ?></div>
             <div class="mt-4 sm:col-span-2 sm:mt-0">
               <div class="space-y-6 max-w-lg">
@@ -772,7 +778,7 @@
                   </div>
                   <a
                     href="<?php echo esc_url( add_query_arg( 'atai_action', 'clear-error-logs' ) ); ?>"
-                    class="bg-primary-600 hover:bg-primary-700 focus:outline-primary-400 mt-4 box-border inline-flex cursor-pointer appearance-none items-center gap-2 rounded-md border border-solid border-transparent px-5 py-2.5 text-sm font-semibold text-white no-underline shadow-sm transition-colors duration-75 ease-in-out hover:text-white focus:!text-white focus:outline-offset-2 active:border-gray-700 active:!text-white active:!outline-none disabled:focus:outline-transparent disabled:active:border-transparent"
+                    class="atai-button blue mt-4 cursor-pointer appearance-none no-underline shadow-sm"
                   >
                     <?php esc_html_e( 'Clear Logs', 'alttext-ai' ); ?>
                   </a>
@@ -785,6 +791,6 @@
       </div>
     </div>
 
-    <input type="submit" name="submit" value="Save Changes" class="bg-primary-600 hover:bg-primary-700 focus:outline-primary-400 mt-4 box-border inline-flex cursor-pointer appearance-none items-center gap-2 rounded-md border border-solid border-transparent px-5 py-2.5 text-sm font-semibold text-white no-underline shadow-sm transition-colors duration-75 ease-in-out hover:text-white focus:!text-white focus:outline-offset-2 active:border-gray-700 active:!text-white active:!outline-none disabled:focus:outline-transparent disabled:active:border-transparent">
+    <input type="submit" name="submit" value="Save Changes" class="atai-button blue mt-4 cursor-pointer appearance-none no-underline shadow-sm">
   </form>
 </div>

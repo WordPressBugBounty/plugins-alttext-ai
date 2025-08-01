@@ -5,7 +5,7 @@ Tags: image alt text, AI,  accessibility, alternative text, image to text
 Requires PHP: 7.0
 Requires at least: 4.7
 Tested up to: 6.8
-Stable tag: 1.10.4
+Stable tag: 1.10.5
 WC requires at least: 3.3
 WC tested up to: 9.2.3
 License: GPLv2 or later
@@ -68,6 +68,12 @@ Added support for SEOPress keywords.
 We now integrate Yoast, AllInOne, and RankMath focus keyphrases for alt text.
 
 == Changelog ==
+
+= 1.10.5 - 2025-08-01 =
+* Improved: Enhanced bulk generation reliability with automatic progress saving and recovery
+* Improved: Smarter error detection and handling during bulk operations
+* Improved: Better user interface with cleaner notifications and consistent styling
+* Fixed: Security improvements following WordPress best practices
 
 = 1.10.4 - 2025-07-17 =
 * Added: You can now choose regional variants for English (American/British) and Portuguese (Brazil/Portugal). Visit Settings → AltText.ai to select your preferred variant.

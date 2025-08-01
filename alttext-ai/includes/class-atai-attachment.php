@@ -956,10 +956,14 @@ SQL;
     // Check permissions
     $this->check_attachment_permissions();
 
+    // Set memory limit to prevent server errors
+    ini_set('memory_limit', '512M');
+    ignore_user_abort(false);
+
     global $wpdb;
     $post_id = intval($_REQUEST['post_id'] ?? 0);
     $last_post_id = intval($_REQUEST['last_post_id'] ?? 0);
-    $query_limit = max( intval($_REQUEST['posts_per_page'] ?? 0), 1);
+    $query_limit = min( max( intval($_REQUEST['posts_per_page'] ?? 0), 1), 5 ); // 5 images per batch max
     $keywords = is_array($_REQUEST['keywords'] ?? null) ? array_map('sanitize_text_field', $_REQUEST['keywords']) : [];
     $negative_keywords = is_array($_REQUEST['negativeKeywords'] ?? null) ? array_map('sanitize_text_field', $_REQUEST['negativeKeywords']) : [];
     $mode = sanitize_text_field( $_REQUEST['mode'] ?? 'missing' );
@@ -969,6 +973,9 @@ SQL;
     $wc_only_featured = sanitize_text_field( $_REQUEST['wcOnlyFeatured'] ?? '0' );
     $batch_id = sanitize_text_field( $_REQUEST['batchId'] ?? '0' );
     $images_successful = $images_skipped = $loop_count = 0;
+    
+    // Get accumulated skip reasons from previous batches
+    $skip_reasons = get_transient('atai_bulk_skip_reasons_' . get_current_user_id()) ?: array();
     $redirect_url = admin_url( 'admin.php?page=atai-bulk-generate' );
     $recursive = true;
 
@@ -976,7 +983,7 @@ SQL;
       $images_to_update_sql = <<<SQL
 SELECT p.ID as post_id
 FROM {$wpdb->posts} p
-WHERE p.ID > {$last_post_id}
+WHERE p.ID > %d
   AND (p.post_mime_type LIKE 'image/%')
   AND p.post_type = 'attachment'
   AND (p.post_status = 'inherit')
@@ -990,7 +997,7 @@ FROM {$wpdb->posts} p
     LEFT JOIN {$wpdb->postmeta} AS pm
        ON (p.ID = pm.post_id AND pm.meta_key = '_wp_attachment_image_alt')
     LEFT JOIN {$wpdb->postmeta} AS mt1 ON (p.ID = mt1.post_id)
-WHERE p.ID > {$last_post_id}
+WHERE p.ID > %d
   AND (p.post_mime_type LIKE 'image/%')
   AND (pm.post_id IS NULL OR (mt1.meta_key = '_wp_attachment_image_alt' AND mt1.meta_value = ''))
   AND p.post_type = 'attachment'
@@ -999,7 +1006,7 @@ SQL;
     }
 
     if ( $post_id ) {
-      $images_to_update_sql = $images_to_update_sql . " AND (p.post_parent = {$post_id})";
+      $images_to_update_sql = $images_to_update_sql . $wpdb->prepare(" AND (p.post_parent = %d)", $post_id);
     }
     else {
       if ( $only_attached === '1' ) {
@@ -1042,11 +1049,11 @@ SQL;
       $images_to_update_sql = $images_to_update_sql . " GROUP BY p.ID ORDER BY p.ID LIMIT %d";
       
       // Handle prepared statement with excluded post types
-      $prepare_params = array();
+      $prepare_params = array( $last_post_id ); // Add last_post_id parameter
       if ( ! empty( $excluded_post_types ) ) {
-        $prepare_params = array_merge( $post_types, array( $query_limit ) );
+        $prepare_params = array_merge( array( $last_post_id ), $post_types, array( $query_limit ) );
       } else {
-        $prepare_params = array( $query_limit );
+        $prepare_params = array( $last_post_id, $query_limit );
       }
       
       // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared,,WordPress.DB.PreparedSQL.NotPrepared
@@ -1054,9 +1061,41 @@ SQL;
     }
 
     if ( count( $images_to_update ) == 0 ) {
+      // Get final accumulated skip reasons
+      $final_skip_reasons = get_transient('atai_bulk_skip_reasons_' . get_current_user_id()) ?: array();
+      
+      // Clean up the transient
+      delete_transient('atai_bulk_skip_reasons_' . get_current_user_id());
+      
+      // Determine appropriate completion message based on context
+      $completion_message = $last_post_id > 0 
+        ? __( 'Bulk generation complete! All remaining images have been processed.', 'alttext-ai' )
+        : __( 'All images already have alt text or are not eligible for processing.', 'alttext-ai' );
+      
+      // Build skip reasons subtitle
+      $subtitle = '';
+      $total_skipped = array_sum($final_skip_reasons);
+      if ( $total_skipped > 0 ) {
+        $reason_messages = array();
+        if ( isset( $final_skip_reasons['ineligible'] ) && $final_skip_reasons['ineligible'] > 0 ) {
+          $reason_messages[] = sprintf(__('%d ineligible (size/format/settings)', 'alttext-ai'), $final_skip_reasons['ineligible']);
+        }
+        if ( isset( $final_skip_reasons['api_error'] ) && $final_skip_reasons['api_error'] > 0 ) {
+          $reason_messages[] = sprintf(__('%d API errors', 'alttext-ai'), $final_skip_reasons['api_error']);
+        }
+        if ( isset( $final_skip_reasons['generation_failed'] ) && $final_skip_reasons['generation_failed'] > 0 ) {
+          $reason_messages[] = sprintf(__('%d generation failures', 'alttext-ai'), $final_skip_reasons['generation_failed']);
+        }
+        
+        if ( ! empty( $reason_messages ) ) {
+          $subtitle = sprintf(__('Skip reasons: %s', 'alttext-ai'), implode(', ', $reason_messages));
+        }
+      }
+        
       wp_send_json( array(
         'status' => 'success',
-        'message' => __( 'No images to process.', 'alttext-ai' ),
+        'message' => $completion_message,
+        'subtitle' => $subtitle,
         'process_count'   => 0,
         'success_count'   => 0,
         'last_post_id' => $last_post_id,
@@ -1076,6 +1115,14 @@ SQL;
         $images_skipped++;
         $last_post_id = $attachment_id;  // IMPORTANT: Update last_post_id to prevent infinite loop
         
+        // Track skip reason for user feedback
+        $skip_reasons['ineligible'] = ($skip_reasons['ineligible'] ?? 0) + 1;
+        
+        // Log why it was skipped (with minimal detail for bulk operations)
+        if ( defined( 'ATAI_BULK_DEBUG' ) ) {
+          ATAI_Utility::log_error( sprintf("BulkGenerate: Skipped attachment ID %d (not eligible)", $attachment_id) );
+        }
+        
         if ( $mode === 'bulk-select' ) {
           // Remove the attachment ID from the transient
           $images_to_update = array_diff( $images_to_update, array( $attachment_id ) );
@@ -1089,6 +1136,7 @@ SQL;
       }
       
       $response = $this->generate_alt( $attachment_id, null, array( 'keywords' => $keywords, 'negative_keywords' => $negative_keywords ) );
+      
 
       if ( $response === 'insufficient_credits' ) {
         wp_send_json( array(
@@ -1102,10 +1150,27 @@ SQL;
         ) );
       }
 
+      if ( $response === 'url_access_error' ) {
+        wp_send_json( array(
+          'status'      => 'error',
+          'message'     => __( 'Unable to access image URLs. Your images may be on a private server.', 'alttext-ai' ),
+          'action_required' => 'url_access_fix',
+          'last_post_id' => $attachment_id,  // Use current failing image as the last processed
+        ) );
+      }
+
       $last_post_id = $attachment_id;
 
       if ( ! is_array( $response ) && $response !== false ) {
         $images_successful++;
+      } else {
+        // API call failed - track the reason
+        $images_skipped++;
+        if ( is_array( $response ) ) {
+          $skip_reasons['api_error'] = ($skip_reasons['api_error'] ?? 0) + 1;
+        } else {
+          $skip_reasons['generation_failed'] = ($skip_reasons['generation_failed'] ?? 0) + 1;
+        }
       }
 
       if ( $mode === 'bulk-select' ) {
@@ -1127,14 +1192,26 @@ SQL;
       $recursive = false;
     }
 
-    // Prepare response message based on whether we have skipped images
-    $message = $images_skipped > 0 
-      ? sprintf(__('Images processed: %d updated, %d skipped.', 'alttext-ai'), $images_successful, $images_skipped)
-      : __('Images successfully updated.', 'alttext-ai');
+    // Save accumulated skip reasons for next batch (or final display)
+    set_transient('atai_bulk_skip_reasons_' . get_current_user_id(), $skip_reasons, 3600);
+    
+    // Clean up memory after batch processing
+    wp_cache_flush();
+    if ( function_exists( 'gc_collect_cycles' ) ) {
+      gc_collect_cycles();
+    }
+    
+    // Simple batch message - no skip reasons during processing
+    if ( $images_skipped > 0 ) {
+      $message = sprintf(__('Batch processed: %d updated, %d skipped', 'alttext-ai'), $images_successful, $images_skipped);
+    } else {
+      $message = sprintf(__('Batch processed: %d updated', 'alttext-ai'), $images_successful);
+    }
       
     wp_send_json( array(
       'status'          => 'success',
       'message'         => $message,
+      'subtitle'        => '',
       'process_count'   => $loop_count,
       'success_count'   => $images_successful,
       'skipped_count'   => $images_skipped,
@@ -1182,6 +1259,8 @@ SQL;
    * @access public
    */
   public function ajax_single_generate() {
+    check_ajax_referer( 'atai_single_generate', 'security' );
+    
     // Check permissions
     $this->check_attachment_permissions();
 
@@ -1200,6 +1279,14 @@ SQL;
       wp_send_json( array(
         'status' => 'error',
         'message' => 'You have no more credits available. Go to your account on AltText.ai to get more credits.',
+      ) );
+    }
+
+    if ( $response === 'url_access_error' ) {
+      wp_send_json( array(
+        'status' => 'error',
+        'message' => __( 'Unable to access image URL. Your site may be on a private server.', 'alttext-ai' ),
+        'action_required' => 'url_access_fix',
       ) );
     }
 

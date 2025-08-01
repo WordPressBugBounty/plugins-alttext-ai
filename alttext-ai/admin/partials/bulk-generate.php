@@ -158,107 +158,236 @@ SQL;
   }
 ?>
 
-<div class="mt-4 mr-5">
+<div class="wrap max-w-6xl">
+  <div>
+    <!-- Hero Section -->
+    <h1 class="!text-2xl !font-bold !text-gray-900"><?php esc_html_e( 'Bulk Generate Alt Text', 'alttext-ai' ); ?></h1>
+    <p class="!text-gray-700 !text-base !font-medium ">
+      <?php esc_html_e( 'Automatically generate alt text for multiple images at once. Improve accessibility and SEO across your entire media library.', 'alttext-ai' ); ?>
+    </p>
 
-  <div class="mb-4">
-    <h2 class="mb-4 text-2xl font-bold"><?php esc_html_e( 'Bulk Generate Alt Text', 'alttext-ai' ); ?></h2>
-
+  <!-- Stats Cards -->
+  <div class="mb-6">
     <?php if ( $action === 'bulk-select-generate' ) : ?>
-      <dl class="grid grid-cols-1 gap-8 max-w-5xl sm:grid-cols-2">
-        <div class="overflow-hidden py-2 px-4 bg-white rounded-lg shadow sm:p-4">
-          <dt class="text-lg font-medium truncate text-primary-700"><?php esc_html_e( 'Selected Images to Update', 'alttext-ai' ); ?></dt>
-          <dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900"><?php echo esc_html($all_images_count); ?></dd>
+      <dl class="mx-auto grid grid-cols-1 gap-px bg-gray-900/5 border p-px rounded-lg sm:grid-cols-2 lg:grid-cols-4">
+        <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 rounded-lg bg-white px-4 py-6 sm:px-6 xl:px-8">
+          <dt class="text-sm/6 font-medium text-gray-500"><?php esc_html_e( 'Selected Images', 'alttext-ai' ); ?></dt>
+          <dd class="text-xs font-medium text-gray-700">Ready</dd>
+          <dd class="w-full flex-none text-3xl/10 font-medium tracking-tight text-gray-900 ml-0"><?php echo esc_html(number_format($all_images_count)); ?></dd>
         </div>
       </dl>
     <?php else : ?>
-      <dl class="grid grid-cols-1 gap-4 max-w-5xl sm:grid-cols-2">
-        <div class="overflow-hidden py-2 px-4 bg-white rounded-lg shadow sm:p-4">
-          <dt class="text-lg font-medium text-gray-500 truncate"><?php esc_html_e( 'Total Images', 'alttext-ai' ); ?></dt>
-          <dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900"><?php echo esc_html($all_images_count); ?></dd>
+      <dl class="mx-auto grid grid-cols-1 gap-px bg-gray-900/5 border p-px rounded-lg sm:grid-cols-2 lg:grid-cols-4">
+        <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 rounded-l-lg bg-white px-4 py-6 sm:px-6 xl:px-8">
+          <dt class="text-sm/6 font-medium text-gray-500"><?php esc_html_e( 'Total Images', 'alttext-ai' ); ?></dt>
+          <dd class="text-xs font-medium text-gray-700">Library</dd>
+          <dd class="w-full flex-none text-3xl/10 font-medium tracking-tight text-gray-900 ml-0"><?php echo esc_html(number_format($all_images_count)); ?></dd>
         </div>
-        <div class="overflow-hidden py-2 px-4 bg-white rounded-lg shadow sm:p-4">
-          <dt class="text-lg font-medium truncate text-primary-700"><?php esc_html_e( 'Images Missing Alt Text', 'alttext-ai' ); ?></dt>
-          <dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900"><?php echo esc_html($images_missing_alt_text_count); ?></dd>
+        <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 bg-white px-4 py-6 sm:px-6 xl:px-8">
+          <dt class="text-sm/6 font-medium text-gray-500"><?php esc_html_e( 'Missing Alt Text', 'alttext-ai' ); ?></dt>
+          <dd class="text-xs font-medium text-rose-600"><?php echo esc_html(number_format(($images_missing_alt_text_count / max($all_images_count, 1)) * 100, 1)); ?>%</dd>
+          <dd class="w-full flex-none text-3xl/10 font-medium tracking-tight text-gray-900 ml-0"><?php echo esc_html(number_format($images_missing_alt_text_count)); ?></dd>
+        </div>
+        <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 bg-white px-4 py-6 sm:px-6 xl:px-8">
+          <dt class="text-sm/6 font-medium text-gray-500"><?php esc_html_e( 'With Alt Text', 'alttext-ai' ); ?></dt>
+          <dd class="text-xs font-medium text-gray-700"><?php echo esc_html(number_format((($all_images_count - $images_missing_alt_text_count) / max($all_images_count, 1)) * 100, 1)); ?>%</dd>
+          <dd class="w-full flex-none text-3xl/10 font-medium tracking-tight text-gray-900 ml-0"><?php echo esc_html(number_format($all_images_count - $images_missing_alt_text_count)); ?></dd>
+        </div>
+        <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 bg-white rounded-r-lg px-4 py-6 sm:px-6 xl:px-8">
+          <dt class="text-sm/6 font-medium text-gray-500"><?php esc_html_e( 'Available Credits', 'alttext-ai' ); ?></dt>
+          <dd class="text-xs font-medium text-<?php echo ($this->account && $this->account['available'] > 100) ? 'emerald-600' : 'rose-600'; ?>">
+            <?php echo ($this->account && $this->account['available'] > 100) ? '' : 'Low'; ?>
+          </dd>
+          <dd class="w-full flex-none text-3xl/10 font-medium tracking-tight text-gray-900 ml-0">
+            <?php echo $this->account ? esc_html(number_format((int) $this->account['available'])) : '0'; ?>
+          </dd>
         </div>
       </dl>
     <?php endif; ?>
   </div>
+  </div> <!-- Close the hero/stats container -->
 
   <?php if ( $cannot_bulk_update ) : ?>
-    <div class="py-2 px-4 mb-4 max-w-5xl bg-amber-100 rounded-lg border border-amber-300 sm:p-4">
-      <div class="flex items-center">
-        <div class="flex-shrink-0">
-          <svg class="w-5 h-5 text-amber-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-            <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
-          </svg>
+    <div class=" border bg-amber-900/5 p-px rounded-lg  mb-8 ">
+      <div class=" bg-amber-50 flex rounded-lg items-center justify-between px-4 py-6  sm:px-6 xl:px-8">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <svg class="w-5 h-5 text-amber-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+            </svg>
+          </div>
+          <div class="ml-3">
+            <p class="text-sm text-amber-700">
+              <?php esc_html_e( 'You have no more credits left. To bulk update your library, you need to purchase more credits.', 'alttext-ai' ); ?>
+            </p>
+          </div>
         </div>
-        <div class="ml-3">
-          <p class="text-sm text-amber-700">
-            You have no more credits left.
-            <?php if ( $this->account && !$this->account['whitelabel'] ) : ?>
-              To bulk update your library, please
-              <a href="<?php echo esc_url($subscriptions_url); ?>" target="_blank" class="font-medium text-amber-700 underline hover:text-amber-600">
-                <?php esc_html_e( 'purchase more credits.', 'alttext-ai' ); ?>
-              </a>
-              <?php endif; ?>
-          </p>
+        <?php if ( $this->account && !$this->account['whitelabel'] ) : ?>
+        <div class="ml-4">
+          <a 
+            href="<?php echo esc_url($subscriptions_url); ?>" 
+            target="_blank" 
+            class="atai-button blue no-underline"
+          >
+            <?php esc_html_e( 'Purchase Credits', 'alttext-ai' ); ?>
+          </a>
         </div>
+        <?php endif; ?>
       </div>
     </div>
     <?php return; ?>
-  <?php else : ?>
-    <div class="py-2 px-4 mb-4 max-w-5xl rounded-lg border border-solid sm:p-4 bg-primary-100 border-primary-200 box-border">
-      <div class="flex">
-        <div class="flex-1 md:flex md:justify-between">
-          <p class="text-sm font-medium text-primary-700">
-            <?php printf( esc_html__( 'Available credits: %d', 'alttext-ai' ), (int) $this->account['available'] ); ?>
-            <?php if ( !$this->account['whitelabel'] ) : ?>
-              (
-              <a href="<?php echo esc_url($subscriptions_url); ?>" target="_blank" class="text-xs underline whitespace-nowrap text-primary-700 hover:text-primary-600">
-                <?php esc_html_e( 'Get more credits', 'alttext-ai' ); ?>
-              </a>
-              )
-            <?php endif; ?>
-          </p>
-        </div>
-      </div>
-    </div>
   <?php endif; ?>
 
-  <div id="bulk-generate-form">
-    <div class="p-4 mt-2 max-w-5xl rounded-lg border-2 border-gray-400 border-dashed box-border">
-      <h3 class="text-lg font-semibold text-gray-700">Keywords</h3>
-      <div class="grid grid-cols-1 gap-4 pt-4 sm:grid-cols-2">
+  <div id="bulk-generate-form" class="space-y-6">
+    <div class="border bg-gray-900/5 p-px rounded-lg mb-6">
+      <div class="overflow-hidden rounded-lg bg-white">
+        <div class="border-b border-gray-200 bg-white px-4 pt-5 pb-3 sm:px-6">
+          <h3 class="text-base font-semibold text-gray-900 my-0">Keywords</h3>
+        </div>
+        <div class="px-4 py-4 sm:px-6">
+          <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
         <div>
-          <label for="keywords">
-            <span class="text-sm leading-6 text-gray-900">[optional] SEO Keywords</span>
-            <span class="text-xs text-gray-500">(try to include these in the generated alt text)</span>
-          </label>
-
-          <div class="mt-1 sm:max-w-md">
-            <input data-bulk-generate-keywords type="text" size="60" maxlength="512" name="keywords" id="bulk-generate-keywords" class="block py-1.5 w-full text-gray-900 rounded-md border-0 ring-1 ring-inset ring-gray-300 shadow-sm sm:text-sm sm:leading-6 focus:ring-2 focus:ring-inset placeholder:text-gray-400 focus:ring-primary-600">
+          <label for="bulk-generate-keywords" class="block text-sm/6 font-medium text-gray-900">SEO Keywords <span class="text-gray-500 font-normal">(optional)</span></label>
+          <div class="mt-2">
+            <input 
+              data-bulk-generate-keywords 
+              type="text" 
+              size="60" 
+              maxlength="512" 
+              name="keywords" 
+              id="bulk-generate-keywords" 
+              placeholder="Enter keywords separated by commas"
+              aria-describedby="keywords-description"
+              class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-primary-600 sm:text-sm/6" 
+            />
           </div>
-          <p class="mt-1 text-xs text-gray-500">Separate with commas. Maximum of 6 keywords or phrases.</p>
+          <p id="keywords-description" class="mt-2 text-sm text-gray-500">Try to include these in the generated alt text. Maximum of 6 keywords or phrases</p>
         </div>
         <div>
-          <label for="negative-keywords">
-            <span class="text-sm leading-6 text-gray-900">[optional] Negative keywords</span>
-            <span class="text-xs text-gray-500">(do not include these in the generated alt text)</span>
-          </label>
-          <div class="mt-1 sm:max-w-md">
-            <input data-bulk-generate-negative-keywords type="text" size="60" maxlength="512" name="negative-keywords" id="bulk-generate-negative-keywords" class="block py-1.5 w-full text-gray-900 rounded-md border-0 ring-1 ring-inset ring-gray-300 shadow-sm sm:text-sm sm:leading-6 focus:ring-2 focus:ring-inset placeholder:text-gray-400 focus:ring-primary-600">
+          <label for="bulk-generate-negative-keywords" class="block text-sm/6 font-medium text-gray-900">Negative Keywords <span class="text-gray-500 font-normal">(optional)</span></label>
+          <div class="mt-2">
+            <input 
+              data-bulk-generate-negative-keywords 
+              type="text" 
+              size="60" 
+              maxlength="512" 
+              name="negative-keywords" 
+              id="bulk-generate-negative-keywords" 
+              placeholder="Enter negative keywords separated by commas"
+              aria-describedby="negative-keywords-description"
+              class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-primary-600 sm:text-sm/6" 
+            />
           </div>
-          <p class="mt-1 text-xs text-gray-500">Separate with commas. Maximum of 6 keywords or phrases.</p>
+          <p id="negative-keywords-description" class="mt-2 text-sm text-gray-500">Do not include these in the generated alt text. Maximum of 6 keywords or phrases</p>
+        </div>
+          </div>
         </div>
       </div>
     </div>
 
-    <div class="mt-4">
+    <?php if ( $action === 'normal' ) : ?>
+      <div class="border bg-gray-900/5 p-px rounded-lg mb-6">
+        <div class="overflow-hidden rounded-lg bg-white">
+          <div class="border-b border-gray-200 bg-white px-4 pt-5 pb-3 sm:px-6">
+            <h3 class="text-base font-semibold text-gray-900 my-0">Processing Options</h3>
+          </div>
+          <div class="px-4 py-4 sm:px-6">
+            <div class="space-y-5">
+          <div class="flex gap-3">
+            <div class="flex h-6 shrink-0 items-center">
+              <input
+                type="checkbox"
+                id="atai_bulk_generate_all"
+                data-bulk-generate-mode-all
+                data-url="<?php echo esc_url($mode_url); ?>"
+                <?php if ( isset( $_GET['atai_mode'] ) && $_GET['atai_mode'] === 'all' ) echo esc_html('checked'); ?>
+              />
+            </div>
+            <div class="text-sm/6 -mt-0.5">
+              <label for="atai_bulk_generate_all" class="font-medium text-gray-900 align-top"><?php esc_html_e( 'Overwrite existing alt text', 'alttext-ai' ); ?></label>
+              <p id="atai_bulk_generate_all-description" class="text-gray-500 my-0"><?php esc_html_e( 'Include images that already have alt text and replace their existing alt text.', 'alttext-ai' ); ?></p>
+            </div>
+          </div>
+          <div class="flex gap-3">
+            <div class="flex h-6 shrink-0 items-center">
+              <input
+                type="checkbox"
+                id="atai_bulk_generate_only_attached"
+                data-bulk-generate-only-attached
+                data-url="<?php echo esc_url($only_attached_url); ?>"
+                <?php if ( $only_attached === '1' ) echo 'checked'; ?>
+              />
+            </div>
+            <div class="text-sm/6 -mt-0.5">
+              <label for="atai_bulk_generate_only_attached" class="font-medium text-gray-900 align-top"><?php esc_html_e( 'Only attached images', 'alttext-ai' ); ?></label>
+              <p class="text-gray-500 my-0"><?php esc_html_e( 'Only process images that are attached to posts or pages.', 'alttext-ai' ); ?></p>
+            </div>
+          </div>
+          <div class="flex gap-3">
+            <div class="flex h-6 shrink-0 items-center">
+              <input
+                type="checkbox"
+                id="atai_bulk_generate_only_new"
+                data-bulk-generate-only-new
+                data-url="<?php echo esc_url($only_new_url); ?>"
+                <?php if ( $only_new === '1' ) echo 'checked'; ?>
+              />
+            </div>
+            <div class="text-sm/6 -mt-0.5">
+              <label for="atai_bulk_generate_only_new" class="font-medium text-gray-900 align-top"><?php esc_html_e( 'Skip previously processed', 'alttext-ai' ); ?></label>
+              <p class="text-gray-500 my-0"><?php esc_html_e( 'Skip images that have already been processed by AltText.ai', 'alttext-ai' ); ?></p>
+            </div>
+          </div>
+          <?php if ( ATAI_Utility::has_woocommerce() ) : ?>
+          <div class="">
+            <div class="border-b border-gray-200 bg-white px-0 pb-3">
+              <h3 class="text-base font-semibold text-gray-900 my-0">WooCommerce Options</h3>
+            </div>
+            <div class="px-0 py-4 space-y-5">
+              <div class="flex gap-3">
+                <div class="flex h-6 shrink-0 items-center">
+                  <input
+                    type="checkbox"
+                    id="atai_bulk_generate_wc_products"
+                    data-bulk-generate-wc-products
+                    data-url="<?php echo esc_url($wc_products_url); ?>"
+                    <?php if ( $wc_products === '1' ) echo 'checked'; ?>
+                  />
+                </div>
+                <div class="text-sm/6 -mt-0.5">
+                  <label for="atai_bulk_generate_wc_products" class="font-medium text-gray-900 align-top"><?php esc_html_e( 'Only process WooCommerce product images.', 'alttext-ai' ); ?></label>
+                </div>
+              </div>
+              <div class="flex gap-3">
+                <div class="flex h-6 shrink-0 items-center">
+                  <input
+                    type="checkbox"
+                    id="atai_bulk_generate_wc_only_featured"
+                    data-bulk-generate-wc-only-featured
+                    data-url="<?php echo esc_url($wc_only_featured_url); ?>"
+                    <?php if ( $wc_only_featured === '1' ) echo 'checked'; ?>
+                  />
+                </div>
+                <div class="text-sm/6 -mt-0.5">
+                  <label for="atai_bulk_generate_wc_only_featured" class="font-medium text-gray-900 align-top"><?php esc_html_e( 'For each product, only process the main image, and skip gallery images.', 'alttext-ai' ); ?></label>
+                </div>
+              </div>
+            </div>
+          </div>
+          <?php endif; ?>
+            </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    <?php endif; ?>
+
+    <div class="flex justify-start mt-6">
       <?php if ($images_count === 0) : ?>
       <button
         type="button"
         disabled
-        class="py-2.5 px-3.5 text-sm font-semibold text-white rounded-md border-none shadow-sm appearance-none pointer-events-none bg-primary-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600 disabled"
+        class="atai-button" style="background-color: rgb(156 163 175); color: white; border-color: transparent;"
       >
         Generate Alt Text
       </button>
@@ -267,153 +396,74 @@ SQL;
       <button
         data-bulk-generate-start
         type="button"
-        class="bg-primary-600 hover:bg-primary-700 focus:outline-primary-400 mt-4 box-border inline-flex cursor-pointer appearance-none items-center gap-2 rounded-md border border-solid border-transparent px-5 py-2.5 text-sm font-semibold text-white no-underline shadow-sm transition-colors duration-75 ease-in-out hover:text-white focus:!text-white focus:outline-offset-2 active:border-gray-700 active:!text-white active:!outline-none disabled:focus:outline-transparent disabled:active:border-transparent"
+        class="atai-button blue"
       >
         <?php
-          echo esc_html( sprintf( _n( 'Generate Alt Text: %d image', 'Generate Alt Text: %d images', $images_count, 'alttext-ai' ), $images_count ) );
+          echo esc_html( sprintf( _n( 'Generate Alt Text for %d Image', 'Generate Alt Text for %d Images', $images_count, 'alttext-ai' ), $images_count ) );
         ?>
       </button>
       <?php endif; ?>
     </div>
 
-    <?php if ( $action === 'normal' ) : ?>
-      <fieldset class="mt-4">
-        <legend class="sr-only">Bulk Generation Modes</legend>
-        <div class="space-y-2">
-          <div class="flex relative items-start">
-            <div class="flex items-center h-6">
-              <input
-                type="checkbox"
-                id="atai_bulk_generate_all"
-                data-bulk-generate-mode-all
-                data-url="<?php echo esc_url($mode_url); ?>"
-                class="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-600"
-                <?php if ( isset( $_GET['atai_mode'] ) && $_GET['atai_mode'] === 'all' ) echo esc_html('checked'); ?>
-              >
-            </div>
-            <div class="ml-2 -mt-1 text-xs leading-6">
-              <label for="atai_bulk_generate_all" class="text-gray-900"><?php esc_html_e( 'Include images that already have alt text (overwrite existing alt text).', 'alttext-ai' ); ?></label>
-            </div>
-          </div>
-          <div class="flex relative items-start">
-            <div class="flex items-center h-6">
-              <input
-                type="checkbox"
-                id="atai_bulk_generate_only_attached"
-                data-bulk-generate-only-attached
-                data-url="<?php echo esc_url($only_attached_url); ?>"
-                class="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-600"
-                <?php if ( $only_attached === '1' ) echo 'checked'; ?>
-              >
-            </div>
-            <div class="ml-2 -mt-1 text-xs leading-6">
-              <label for="atai_bulk_generate_only_attached" class="text-gray-900"><?php esc_html_e( 'Only process images that are attached to posts.', 'alttext-ai' ); ?></label>
-            </div>
-          </div>
-          <div class="flex relative items-start">
-            <div class="flex items-center h-6">
-              <input
-                type="checkbox"
-                id="atai_bulk_generate_only_new"
-                data-bulk-generate-only-new
-                data-url="<?php echo esc_url($only_new_url); ?>"
-                class="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-600"
-                <?php if ( $only_new === '1' ) echo 'checked'; ?>
-              >
-            </div>
-            <div class="ml-2 -mt-1 text-xs leading-6">
-              <label for="atai_bulk_generate_only_new" class="text-gray-900"><?php esc_html_e( 'Skip images already processed by AltText.ai', 'alttext-ai' ); ?></label>
-            </div>
-          </div>
-        </div>
-      </fieldset>
 
-      <?php if ( ATAI_Utility::has_woocommerce() ) : ?>
-      <fieldset>
-        <h4 class="mt-4 mb-2 font-semibold">WooCommerce</h4>
-        <div class="space-y-2">
-          <div class="flex relative items-start">
-            <div class="flex items-center h-6">
-              <input
-                type="checkbox"
-                id="atai_bulk_generate_wc_products"
-                data-bulk-generate-wc-products
-                data-url="<?php echo esc_url($wc_products_url); ?>"
-                class="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-600"
-                <?php if ( $wc_products === '1' ) echo 'checked'; ?>
-              >
-            </div>
-            <div class="ml-2 -mt-1 text-xs leading-6">
-              <label for="atai_bulk_generate_wc_products" class="text-gray-900"><?php esc_html_e( 'Only process WooCommerce product images.', 'alttext-ai' ); ?></label>
-            </div>
-          </div>
-          <div class="flex relative items-start">
-            <div class="flex items-center h-6">
-              <input
-                type="checkbox"
-                id="atai_bulk_generate_wc_only_featured"
-                data-bulk-generate-wc-only-featured
-                data-url="<?php echo esc_url($wc_only_featured_url); ?>"
-                class="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-600"
-                <?php if ( $wc_only_featured === '1' ) echo 'checked'; ?>
-              >
-            </div>
-            <div class="ml-2 -mt-1 text-xs leading-6">
-              <label for="atai_bulk_generate_wc_only_featured" class="text-gray-900"><?php esc_html_e( 'For each product, only process the main image, and skip gallery images.', 'alttext-ai' ); ?></label>
-            </div>
-          </div>
-        </div>
-      </fieldset>
-      <?php endif; ?>
-    <?php endif; ?>
-  </div> <!-- bulk generate form -->
 
-  <div data-bulk-generate-progress-wrapper class="hidden p-6 mt-4 space-y-4 border-4 border">
-    <h3 data-bulk-generate-progress-heading class="text-xl font-semibold">
-      <?php esc_html_e( 'Update in progress (please keep this page open until the update completes)', 'alttext-ai' ); ?>
-    </h3>
-
-    <div data-bulk-generate-progress-bar-wrapper>
-      <div class="flex justify-between mb-1">
-        <span class="text-base font-medium text-primary-700">Progress</span>
-        <span data-bulk-generate-progress-percent class="text-base font-medium text-primary-700">0%</span>
+  <div data-bulk-generate-progress-wrapper style="display: none;" class="border bg-gray-900/5 p-px rounded-lg mb-6">
+    <div class="overflow-hidden rounded-lg bg-white">
+      <div class="border-b border-gray-200 bg-white px-4 pt-5 pb-0 sm:px-6">
+        <h3 data-bulk-generate-progress-heading class="text-base font-semibold text-gray-900 mt-0 mb-4">
+          <?php esc_html_e( 'Processing Images', 'alttext-ai' ); ?>
+        </h3>
+        <p data-bulk-generate-progress-subtitle class="text-sm text-gray-700 my-0 group data-[skipped]:bg-amber-900/15 data-[skipped]:p-px data-[skipped]:rounded-lg"><span class="group-data-[skipped]:bg-amber-50 group-data-[skipped]:rounded-lg group-data-[skipped]:py-2 group-data-[skipped]:px-3 group-data-[skipped]:block">Please keep this page open until the update completes</span></p>
       </div>
-      <div class="w-full h-4 bg-gray-200 rounded-full">
-        <div
-          data-bulk-generate-progress-bar
-          data-max="<?php echo esc_html($images_count); ?>"
-          data-current="0"
-          data-successful="0"
-          class="h-4 rounded-full bg-primary-600 transition-width ease-in-out duration-700" style="width: 0.5%"
-        ></div>
+      <div class="px-4 py-4 sm:px-6 grid gap-y-4">
+        <div data-bulk-generate-progress-bar-wrapper class="space-y-4">
+          <div class="flex justify-between items-center">
+            <span class="text-base font-semibold text-gray-700">Progress</span>
+            <span data-bulk-generate-progress-percent class="text-base font-semibold text-gray-700">0%</span>
+          </div>
+          <div class="w-full h-4 bg-gray-200 overflow-hidden rounded-full shadow-inner">
+            <div
+              data-bulk-generate-progress-bar
+              data-max="<?php echo esc_html($images_count); ?>"
+              data-current="0"
+              data-successful="0"
+              class="h-4 rounded-full bg-primary-600 shadow-sm transition-all ease-in-out duration-700" style="width: 0.5%"
+            ></div>
+          </div>
+        </div>
+
+        <div class=" rounded-lg bg-gray-900/15 p-px space-y-2">
+          <div class="p-4 bg-gray-50 rounded-lg">
+            <p class="text-base  mt-0 font-medium text-gray-900 mb-0">
+              <span data-bulk-generate-progress-current>0</span> / <span data-bulk-generate-progress-max><?php echo esc_html($images_count); ?></span> images processed 
+              (<span data-bulk-generate-progress-successful class="text-emerald-600 font-medium">0</span> successful, 
+              <span data-bulk-generate-progress-skipped class="text-gray-600 font-medium">0</span> skipped)
+            </p>
+            <p class="text-sm text-gray-500 mb-0">
+              Last image ID: <span data-bulk-generate-last-post-id class="font-mono bg-white px-1.5 py-0.5 rounded text-xs border"></span>
+            </p>
+          </div>
+        </div>
+
+        <div class="flex justify-start gap-3">
+          <button
+            data-bulk-generate-cancel
+            class="atai-button black"
+            onclick="window.location = '<?php echo esc_url(admin_url( 'admin.php?page=atai-bulk-generate' )); ?>';"
+          >
+            <?php esc_html_e( 'Cancel', 'alttext-ai' ); ?>
+          </button>
+          <button
+            data-bulk-generate-finished
+            style="display: none;"
+            class="atai-button blue"
+            onclick="window.location = '<?php echo esc_url(admin_url( 'admin.php?page=atai-bulk-generate' )); ?>';"
+          >
+            <?php esc_html_e( 'View Summary', 'alttext-ai' ); ?>
+          </button>
+        </div>
       </div>
     </div>
-
-    <p class="text-lg">
-      <span data-bulk-generate-progress-current>0</span> / <?php echo esc_html($images_count); ?> images processed (<span data-bulk-generate-progress-successful>0</span> successful)
-    </p>
-    <p class="text-sm">
-      Last image ID: <span data-bulk-generate-last-post-id class="ml-2"></span>
-    </p>
-
-    <p>
-      <button
-        data-bulk-generate-cancel
-        class="bg-gray-600 hover:bg-gray-700 focus:outline-primary-400 mt-4 box-border inline-flex cursor-pointer appearance-none items-center gap-2 rounded-md border border-solid border-transparent px-5 py-2.5 text-sm font-semibold text-white no-underline shadow-sm transition-colors duration-75 ease-in-out hover:text-white focus:!text-white focus:outline-offset-2 active:border-gray-700 active:!text-white active:!outline-none disabled:focus:outline-transparent disabled:active:border-transparent"
-        onclick="window.location = '<?php echo esc_url(admin_url( 'admin.php?page=atai-bulk-generate' )); ?>';"
-      >
-        <?php esc_html_e( 'Cancel', 'alttext-ai' ); ?>
-      </button>
-    </p>
-
-    <p>
-      <button
-        data-bulk-generate-finished
-        class="hidden bg-primary-600 hover:bg-primary-700 focus:outline-primary-400 mt-4 box-border inline-flex cursor-pointer appearance-none items-center gap-2 rounded-md border border-solid border-transparent px-5 py-2.5 text-sm font-semibold text-white no-underline shadow-sm transition-colors duration-75 ease-in-out hover:text-white focus:!text-white focus:outline-offset-2 active:border-gray-700 active:!text-white active:!outline-none disabled:focus:outline-transparent disabled:active:border-transparent"
-        onclick="window.location = window.atai.redirectUrl;"
-      >
-        <?php esc_html_e( $action === 'bulk-select-generate' ? 'Back to Media Library' : 'Done', 'alttext-ai' ); ?>
-      </button>
-    </p>
   </div>
+  <div class="clear"></div>
 </div>
