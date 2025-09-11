@@ -993,6 +993,7 @@ SQL;
     $images_successful = $images_skipped = $loop_count = 0;
     $processed_ids = array(); // Track processed IDs for bulk-select cleanup
     
+    
     // Get accumulated skip reasons from previous batches
     $skip_reasons = get_transient('atai_bulk_skip_reasons_' . get_current_user_id()) ?: array();
     $redirect_url = admin_url( 'admin.php?page=atai-bulk-generate' );
@@ -1055,10 +1056,12 @@ SQL;
 
     if ( $mode === 'bulk-select' ) {
       $images_to_update = get_transient( 'alttext_bulk_select_generate_' . $batch_id );
-
+      
       if ( ! is_array( $images_to_update ) ) {
         $images_to_update = [];
       }
+      
+      // Debug: Log what we found in the transient
 
       if ( $url = get_transient( 'alttext_bulk_select_generate_redirect_' . $batch_id ) ) {
         $redirect_url = $url;
@@ -1078,6 +1081,8 @@ SQL;
       $images_to_update = $wpdb->get_results( $wpdb->prepare( $images_to_update_sql, $prepare_params ) );
     }
 
+
+    
     if ( count( $images_to_update ) == 0 ) {
       // Get final accumulated skip reasons
       $final_skip_reasons = get_transient('atai_bulk_skip_reasons_' . get_current_user_id()) ?: array();
@@ -1126,6 +1131,7 @@ SQL;
 
     foreach ( $images_to_update as $image ) {
       $attachment_id = ( $mode === 'bulk-select' ) ? $image : $image->post_id;
+      
       if ( defined( 'ATAI_BULK_DEBUG' ) ) {
         ATAI_Utility::log_error( sprintf("BulkGenerate: Attachment ID %d", $attachment_id) );
       }
@@ -1236,6 +1242,7 @@ SQL;
     }
 
       
+    
     wp_send_json( array(
       'status'          => 'success',
       'message'         => $message,
@@ -1456,7 +1463,8 @@ SQL;
     set_transient( 'alttext_bulk_select_generate_redirect_' . $batch_id, $redirect, 2048 );
 
     // Redirect to the bulk action handler
-    return admin_url( 'admin.php?page=atai-bulk-generate&atai_action=bulk-select-generate&atai_batch_id=' . $batch_id );
+    $redirect_url = admin_url( 'admin.php?page=atai-bulk-generate&atai_action=bulk-select-generate&atai_batch_id=' . $batch_id );
+    return $redirect_url;
   }
 
   /**

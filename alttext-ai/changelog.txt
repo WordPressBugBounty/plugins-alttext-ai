@@ -1,5 +1,8 @@
 *** AltText.ai Changelog ***
 
+2025-09-11 - version 1.10.10
+* Fixed: Media Library bulk action now displays current progress
+
 2025-09-10 - version 1.10.9
 * Improved: Bulk processing now runs up to 10x faster for sites with large media libraries
 * Improved: Better handling of SVG images - they'll now process correctly without size restrictions

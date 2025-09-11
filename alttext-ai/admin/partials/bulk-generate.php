@@ -156,7 +156,14 @@ SQL;
       $images_count = $images_missing_alt_text_count;
     }
   } elseif ( $action === 'bulk-select-generate' ) {
-    $all_images_count = $images_count = count( $selected_images );
+    // For bulk-select, use the current remaining count from transient (for resume operations)
+    $current_selected_images = get_transient( 'alttext_bulk_select_generate_' . $batch_id );
+    if ( is_array( $current_selected_images ) && ! empty( $current_selected_images ) ) {
+      $images_count = count( $current_selected_images );
+    } else {
+      $images_count = count( $selected_images );
+    }
+    $all_images_count = count( $selected_images ); // Keep original count for stats
   }
 ?>
 
@@ -167,6 +174,7 @@ SQL;
     <p class="!text-gray-700 !text-base !font-medium ">
       <?php esc_html_e( 'Automatically generate alt text for multiple images at once. Improve accessibility and SEO across your entire media library.', 'alttext-ai' ); ?>
     </p>
+
 
   <!-- Stats Cards -->
   <div class="mb-6">
@@ -410,9 +418,10 @@ SQL;
       </button>
     </div>
 
+  </div> <!-- Close bulk-generate-form div -->
 
-
-  <div data-bulk-generate-progress-wrapper style="display: none;" class="border bg-gray-900/5 p-px rounded-lg mb-6">
+  <!-- Progress wrapper outside the form so it can be shown when form is hidden -->
+  <div data-bulk-generate-progress-wrapper style="display: none;" class="border bg-gray-900/5 p-px max-w-6xl rounded-lg mb-6">
     <div class="overflow-hidden rounded-lg bg-white">
       <div class="border-b border-gray-200 bg-white px-4 pt-5 pb-0 sm:px-6">
         <h3 data-bulk-generate-progress-heading aria-live="polite" role="status" class="text-base font-semibold text-gray-900 mt-0 mb-4">
@@ -470,5 +479,6 @@ SQL;
       </div>
     </div>
   </div>
-  <div class="clear"></div>
+
+<div class="clear"></div>
 </div>

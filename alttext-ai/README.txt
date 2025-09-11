@@ -5,7 +5,7 @@ Tags: image alt text, AI,  accessibility, alternative text, image to text
 Requires PHP: 7.4
 Requires at least: 4.7
 Tested up to: 6.8
-Stable tag: 1.10.7
+Stable tag: 1.10.10
 WC requires at least: 3.3
 WC tested up to: 10.1
 License: GPLv2 or later
@@ -69,7 +69,10 @@ We now integrate Yoast, AllInOne, and RankMath focus keyphrases for alt text.
 
 == Changelog ==
 
-= 1.10.7 - 2025-09-10 =
+= 1.10.10 - 2025-09-11 =
+* Fixed: Media Library bulk action now displays current progress
+
+= 1.10.9 - 2025-09-10 =
 * Improved: Bulk processing now runs up to 10x faster for sites with large media libraries
 * Improved: Better handling of SVG images - they'll now process correctly without size restrictions
 * Improved: If bulk generation gets interrupted, you can seamlessly continue right where you left off
