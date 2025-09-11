@@ -15,13 +15,14 @@
  * Plugin Name:       AltText.ai
  * Plugin URI:        https://alttext.ai/product
  * Description:       Automatically generate image alt text with AltText.ai.
- * Version:           1.10.5
+ * Version:           1.10.9
  * Author:            AltText.ai
  * Author URI:        https://alttext.ai
  * License:           GPL-2.0+
  * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt
  * Text Domain:       alttext-ai
  * Domain Path:       /languages
+ * Requires PHP:      7.4
  */
 
 // If this file is called directly, abort.
@@ -32,7 +33,7 @@ if ( ! defined( 'WPINC' ) ) {
 /**
  * Current plugin version.
  */
-define( 'ATAI_VERSION', '1.10.5' );
+define( 'ATAI_VERSION', '1.10.9' );
 
 /**
  * Constant to save the value of the plugin path.
@@ -65,9 +66,9 @@ if ( ! defined( 'ATAI_CSV_LINE_LENGTH' ) ) {
  * The code that runs during plugin activation.
  * This action is documented in includes/class-atai-activator.php
  */
-function activate_atai( $plugin ) {
+function activate_atai() {
 	require_once plugin_dir_path( __FILE__ ) . 'includes/class-atai-activator.php';
-	ATAI_Activator::activate( $plugin );
+	ATAI_Activator::activate();
 }
 
 /**
@@ -79,8 +80,8 @@ function deactivate_atai() {
 	ATAI_Deactivator::deactivate();
 }
 
-add_action( 'activated_plugin', 'activate_atai', 10, 1 );
-// register_deactivation_hook( __FILE__, 'deactivate_atai' );
+register_activation_hook( __FILE__, 'activate_atai' );
+register_deactivation_hook( __FILE__, 'deactivate_atai' );
 
 /**
  * The core plugin class that is used to define internationalization,

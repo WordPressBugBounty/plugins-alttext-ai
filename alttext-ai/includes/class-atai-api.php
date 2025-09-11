@@ -121,11 +121,35 @@ class ATAI_API {
       );
     } else {
       // If the site is private, get ALT by sending the image file (base64) to the server
+      $file_path = get_attached_file( $attachment_id );
+      
+      // Validate file exists and is readable before attempting to read
+      if ( ! $file_path || ! file_exists( $file_path ) || ! is_readable( $file_path ) ) {
+        error_log( "ATAI: File not accessible for attachment {$attachment_id}" );
+        return false;
+      }
+      
+      // Use WordPress functions when possible, with error handling
+      $file_contents = @file_get_contents( $file_path );
+      if ( $file_contents === false ) {
+        error_log( "ATAI: Failed to read file for attachment {$attachment_id}" );
+        return false;
+      }
+      
+      $encoded_content = @base64_encode( $file_contents );
+      if ( $encoded_content === false ) {
+        error_log( "ATAI: Failed to encode file for attachment {$attachment_id}" );
+        return false;
+      }
+      
       $body = array(
         'image' => array(
-          'raw' => base64_encode( file_get_contents( get_attached_file( $attachment_id ) ) )
+          'raw' => $encoded_content
         )
       );
+      
+      // Clean up memory immediately after encoding
+      unset( $file_contents, $encoded_content );
     }
 
     $body = array_merge( $body, $api_options );
@@ -146,7 +170,9 @@ class ATAI_API {
     $attachment_edit_url = empty($attachment_id) ? $attachment_url : get_edit_post_link( $attachment_id );
 
     if ( ! is_array( $response ) || is_wp_error( $response ) ) {
-      error_log( print_r( $response, true ) );
+      if ( defined( 'ATAI_DEBUG' ) && ATAI_DEBUG ) {
+        error_log( print_r( $response, true ) );
+      }
 
       ATAI_Utility::log_error(
         sprintf(
@@ -171,7 +197,9 @@ class ATAI_API {
       }
 
       if ( $error_message === 'account has insufficient credits' ) {
-        error_log( print_r( $response, true ) );
+        if ( defined( 'ATAI_DEBUG' ) && ATAI_DEBUG ) {
+          error_log( print_r( $response, true ) );
+        }
 
         ATAI_Utility::log_error(
           sprintf(

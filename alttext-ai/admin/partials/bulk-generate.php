@@ -70,9 +70,9 @@
     $all_images_query = <<<SQL
 SELECT COUNT(*) as total_images
 FROM {$wpdb->posts} p
-WHERE (p.post_mime_type LIKE 'image/%')
-  AND p.post_type = 'attachment'
-  AND p.post_status = 'inherit'
+WHERE (p.post_mime_type LIKE %s)
+  AND p.post_type = %s
+  AND p.post_status = %s
 SQL;
 
     if ($only_attached === '1') {
@@ -80,33 +80,33 @@ SQL;
     }
 
     if ($only_new === '1') {
-      $all_images_query = $all_images_query . " AND (NOT EXISTS(SELECT 1 FROM {$atai_asset_table} WHERE wp_post_id = p.ID))";
+      $all_images_query = $all_images_query . " AND (NOT EXISTS(SELECT 1 FROM {$atai_asset_table} WHERE wp_post_id = p.ID))"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
     }
 
+    $like_image = $wpdb->esc_like('image/') . '%';
+    $prepare_args = array( $like_image, 'attachment', 'inherit' ); // Base values for the placeholders
+
     if ($wc_products === '1') {
-      $all_images_query = $all_images_query . " AND (EXISTS(SELECT 1 FROM {$wpdb->posts} p2 WHERE p2.ID = p.post_parent and p2.post_type = 'product'))";
+      $all_images_query = $all_images_query . " AND (EXISTS(SELECT 1 FROM {$wpdb->posts} p2 WHERE p2.ID = p.post_parent and p2.post_type = %s))";
+      $prepare_args[] = 'product';
     }
 
     if ($wc_only_featured === '1') {
-      $all_images_query = $all_images_query . " AND (EXISTS(SELECT 1 FROM {$wpdb->postmeta} pm2 WHERE pm2.post_id = p.post_parent and pm2.meta_key = '_thumbnail_id' and CAST(pm2.meta_value as UNSIGNED) = p.ID))";
+      $all_images_query = $all_images_query . " AND (EXISTS(SELECT 1 FROM {$wpdb->postmeta} pm2 WHERE pm2.post_id = p.post_parent and pm2.meta_key = %s and CAST(pm2.meta_value as UNSIGNED) = p.ID))";
+      $prepare_args[] = '_thumbnail_id';
     }
 
     // Exclude images attached to specific post types
     $excluded_post_types = get_option( 'atai_excluded_post_types' );
-    $prepare_args = array();
     if ( ! empty( $excluded_post_types ) ) {
       $post_types = array_map( 'trim', explode( ',', $excluded_post_types ) );
       $post_types_placeholders = implode( ',', array_fill( 0, count( $post_types ), '%s' ) );
       $all_images_query = $all_images_query . " AND (p.post_parent = 0 OR NOT EXISTS(SELECT 1 FROM {$wpdb->posts} p3 WHERE p3.ID = p.post_parent AND p3.post_type IN ($post_types_placeholders)))";
-      $prepare_args = $post_types;
+      $prepare_args = array_merge( $prepare_args, $post_types );
     }
 
-    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-    if ( ! empty( $prepare_args ) ) {
-      $all_images_count = $images_count = (int) $wpdb->get_results( $wpdb->prepare( $all_images_query, $prepare_args ) )[0]->total_images;
-    } else {
-      $all_images_count = $images_count = (int) $wpdb->get_results( $all_images_query )[0]->total_images;
-    }
+    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Query is properly prepared, table names are from core
+    $all_images_count = $images_count = (int) $wpdb->get_results( $wpdb->prepare( $all_images_query, $prepare_args ) )[0]->total_images;
     $images_missing_alt_text_count = 0;
 
     // Images without alt text
@@ -114,12 +114,11 @@ SQL;
 SELECT COUNT(DISTINCT p.ID) as total_images
 FROM {$wpdb->posts} p
   LEFT JOIN {$wpdb->postmeta} pm
-    ON (p.ID = pm.post_id AND pm.meta_key = '_wp_attachment_image_alt')
-  LEFT JOIN {$wpdb->postmeta} AS mt1 ON (p.ID = mt1.post_id)
-WHERE (p.post_mime_type LIKE 'image/%')
-  AND (pm.post_id IS NULL OR (mt1.meta_key = '_wp_attachment_image_alt' AND mt1.meta_value = ''))
-  AND p.post_type = 'attachment'
-  AND p.post_status = 'inherit'
+    ON (p.ID = pm.post_id AND pm.meta_key = %s)
+WHERE (p.post_mime_type LIKE %s)
+  AND p.post_type = %s
+  AND p.post_status = %s
+  AND (pm.post_id IS NULL OR TRIM(COALESCE(pm.meta_value, '')) = '')
 SQL;
 
     if ($only_attached === '1') {
@@ -127,28 +126,31 @@ SQL;
     }
 
     if ($only_new === '1') {
-      $images_without_alt_text_sql = $images_without_alt_text_sql . " AND (NOT EXISTS(SELECT 1 FROM {$atai_asset_table} WHERE wp_post_id = p.ID))";
+      $images_without_alt_text_sql = $images_without_alt_text_sql . " AND (NOT EXISTS(SELECT 1 FROM {$atai_asset_table} WHERE wp_post_id = p.ID))"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
     }
 
+    // Apply the same exclusions to the missing alt text query
+    $like_image = $wpdb->esc_like('image/') . '%';
+    $alt_prepare_args = array( '_wp_attachment_image_alt', $like_image, 'attachment', 'inherit' ); // Base values for the placeholders
+
     if ($wc_products === '1') {
-      $images_without_alt_text_sql = $images_without_alt_text_sql . " AND (EXISTS(SELECT 1 FROM {$wpdb->posts} p2 WHERE p2.ID = p.post_parent and p2.post_type = 'product'))";
+      $images_without_alt_text_sql = $images_without_alt_text_sql . " AND (EXISTS(SELECT 1 FROM {$wpdb->posts} p2 WHERE p2.ID = p.post_parent and p2.post_type = %s))";
+      $alt_prepare_args[] = 'product';
     }
 
     if ($wc_only_featured === '1') {
-      $images_without_alt_text_sql = $images_without_alt_text_sql . " AND (EXISTS(SELECT 1 FROM {$wpdb->postmeta} pm2 WHERE pm2.post_id = p.post_parent and pm2.meta_key = '_thumbnail_id' and CAST(pm2.meta_value as UNSIGNED) = p.ID))";
+      $images_without_alt_text_sql = $images_without_alt_text_sql . " AND (EXISTS(SELECT 1 FROM {$wpdb->postmeta} pm2 WHERE pm2.post_id = p.post_parent and pm2.meta_key = %s and CAST(pm2.meta_value as UNSIGNED) = p.ID))";
+      $alt_prepare_args[] = '_thumbnail_id';
     }
-
-    // Exclude images attached to specific post types (for missing alt text query)
     if ( ! empty( $excluded_post_types ) ) {
+      $post_types = array_map( 'trim', explode( ',', $excluded_post_types ) );
+      $post_types_placeholders = implode( ',', array_fill( 0, count( $post_types ), '%s' ) );
       $images_without_alt_text_sql = $images_without_alt_text_sql . " AND (p.post_parent = 0 OR NOT EXISTS(SELECT 1 FROM {$wpdb->posts} p3 WHERE p3.ID = p.post_parent AND p3.post_type IN ($post_types_placeholders)))";
+      $alt_prepare_args = array_merge( $alt_prepare_args, $post_types );
     }
 
-    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-    if ( ! empty( $prepare_args ) ) {
-      $images_missing_alt_text_count = (int) $wpdb->get_results( $wpdb->prepare( $images_without_alt_text_sql, $prepare_args ) )[0]->total_images;
-    } else {
-      $images_missing_alt_text_count = (int) $wpdb->get_results( $images_without_alt_text_sql )[0]->total_images;
-    }
+    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Query is properly prepared, table names are from core
+    $images_missing_alt_text_count = (int) $wpdb->get_results( $wpdb->prepare( $images_without_alt_text_sql, $alt_prepare_args ) )[0]->total_images;
 
     if ( $mode === 'missing' ) {
       $images_count = $images_missing_alt_text_count;
@@ -382,27 +384,30 @@ SQL;
       </div>
     <?php endif; ?>
 
-    <div class="flex justify-start mt-6">
-      <?php if ($images_count === 0) : ?>
-      <button
-        type="button"
-        disabled
-        class="atai-button" style="background-color: rgb(156 163 175); color: white; border-color: transparent;"
-      >
-        Generate Alt Text
-      </button>
-
-      <?php else : ?>
+    <div class="flex justify-start mt-6 gap-3">
       <button
         data-bulk-generate-start
         type="button"
-        class="atai-button blue"
+        class="atai-button <?php echo $images_count === 0 ? '' : 'blue'; ?>"
+        <?php echo $images_count === 0 ? 'disabled' : ''; ?>
+        style="<?php echo $images_count === 0 ? 'background-color: rgb(156 163 175); color: white; border-color: transparent;' : ''; ?>"
       >
         <?php
-          echo esc_html( sprintf( _n( 'Generate Alt Text for %d Image', 'Generate Alt Text for %d Images', $images_count, 'alttext-ai' ), $images_count ) );
+          if ($images_count === 0) {
+            echo esc_html__('Generate Alt Text', 'alttext-ai');
+          } else {
+            echo esc_html( sprintf( _n( 'Generate Alt Text for %d Image', 'Generate Alt Text for %d Images', $images_count, 'alttext-ai' ), $images_count ) );
+          }
         ?>
       </button>
-      <?php endif; ?>
+      <button
+        id="atai-static-start-over-button"
+        type="button"
+        class="atai-button black"
+        style="display: none;"
+      >
+        <?php esc_html_e('Start Over', 'alttext-ai'); ?>
+      </button>
     </div>
 
 
@@ -410,7 +415,7 @@ SQL;
   <div data-bulk-generate-progress-wrapper style="display: none;" class="border bg-gray-900/5 p-px rounded-lg mb-6">
     <div class="overflow-hidden rounded-lg bg-white">
       <div class="border-b border-gray-200 bg-white px-4 pt-5 pb-0 sm:px-6">
-        <h3 data-bulk-generate-progress-heading class="text-base font-semibold text-gray-900 mt-0 mb-4">
+        <h3 data-bulk-generate-progress-heading aria-live="polite" role="status" class="text-base font-semibold text-gray-900 mt-0 mb-4">
           <?php esc_html_e( 'Processing Images', 'alttext-ai' ); ?>
         </h3>
         <p data-bulk-generate-progress-subtitle class="text-sm text-gray-700 my-0 group data-[skipped]:bg-amber-900/15 data-[skipped]:p-px data-[skipped]:rounded-lg"><span class="group-data-[skipped]:bg-amber-50 group-data-[skipped]:rounded-lg group-data-[skipped]:py-2 group-data-[skipped]:px-3 group-data-[skipped]:block">Please keep this page open until the update completes</span></p>

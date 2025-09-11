@@ -2,12 +2,12 @@
 Contributors: alttextai,junaidkbr
 Donate link: https://alttext.ai/
 Tags: image alt text, AI,  accessibility, alternative text, image to text
-Requires PHP: 7.0
+Requires PHP: 7.4
 Requires at least: 4.7
 Tested up to: 6.8
-Stable tag: 1.10.5
+Stable tag: 1.10.7
 WC requires at least: 3.3
-WC tested up to: 9.2.3
+WC tested up to: 10.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 Terms of use: https://alttext.ai/terms
@@ -68,6 +68,12 @@ Added support for SEOPress keywords.
 We now integrate Yoast, AllInOne, and RankMath focus keyphrases for alt text.
 
 == Changelog ==
+
+= 1.10.7 - 2025-09-10 =
+* Improved: Bulk processing now runs up to 10x faster for sites with large media libraries
+* Improved: Better handling of SVG images - they'll now process correctly without size restrictions
+* Improved: If bulk generation gets interrupted, you can seamlessly continue right where you left off
+* Improved: Memory usage optimized for shared hosting - plays nicer with resource limits
 
 = 1.10.5 - 2025-08-01 =
 * Improved: Enhanced bulk generation reliability with automatic progress saving and recovery

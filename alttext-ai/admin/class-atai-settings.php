@@ -418,7 +418,7 @@ class ATAI_Settings {
       'atai_wp_generate_metadata',
       array(
         'sanitize_callback' => array( $this, 'sanitize_yes_no_checkbox' ),
-        'default'           => 'yes',
+        'default'           => 'no',
       )
     );
 
@@ -704,7 +704,7 @@ class ATAI_Settings {
 
   public function ajax_update_public_setting() {
     // Verify nonce
-    if ( ! wp_verify_nonce( $_POST['security'], 'atai_update_public_setting' ) ) {
+    if ( ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['security'] ) ), 'atai_update_public_setting' ) ) {
       wp_send_json_error( __( 'Security check failed.', 'alttext-ai' ) );
     }
 

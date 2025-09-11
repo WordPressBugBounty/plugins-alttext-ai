@@ -196,8 +196,8 @@ class ATAI_Attachment {
    * @return boolean  True if eligible, false otherwise.
    */
   public function is_attachment_eligible( $attachment_id, $context = 'generate' ) {
-    // Determine if we should log errors (skip logging during bulk operations)
-    $should_log = ($context !== 'bulk');
+    // Log errors for actual processing (single or bulk), but not for eligibility checks
+    $should_log = ($context !== 'check');
 
     /** Check user-defined filter for eligibility. Bail early if this attachment is not eligible. **/
     $custom_skip = apply_filters( 'atai_skip_attachment', false, $attachment_id );
@@ -272,6 +272,11 @@ class ATAI_Attachment {
     if ( empty($extension) ) {
       $extension = pathinfo($file, PATHINFO_EXTENSION);
     }
+    
+    // Extract commonly used values for cleaner conditionals
+    $extension_lower = strtolower($extension);
+    $is_svg = ($extension_lower === 'svg');
+    $size_unavailable = ($size === null || $size === false);
 
     $file_type_extensions = get_option( 'atai_type_extensions' );
     $attachment_edit_url = get_edit_post_link($attachment_id);
@@ -279,7 +284,7 @@ class ATAI_Attachment {
     // Logging reasons for ineligibility
     if (! empty($file_type_extensions)) {
       $valid_extensions = array_map('trim', explode(',', $file_type_extensions));
-      if (! in_array(strtolower($extension), $valid_extensions)) {
+      if (! in_array($extension_lower, $valid_extensions)) {
         if ( $should_log ) {
           ATAI_Utility::log_error(
             sprintf(
@@ -295,7 +300,7 @@ class ATAI_Attachment {
       }
     }
 
-    if (!in_array(strtolower($extension), ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'avif', 'svg'])) {
+    if (!in_array($extension_lower, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'avif', 'svg'])) {
       if ( $should_log ) {
         ATAI_Utility::log_error(
           sprintf(
@@ -310,14 +315,16 @@ class ATAI_Attachment {
       return false;
     }
 
-    if ($size === null || $size === false) {
+    // SVGs often have metadata issues that prevent size detection, skip this check for them
+    if (!$is_svg && $size_unavailable) {
       if ($should_log && get_option('atai_skip_filenotfound') === 'yes') {
         ATAI_Utility::log_error(
           sprintf(
-            '<a href="%s" target="_blank">Image #%d</a>: %s',
+            '<a href="%s" target="_blank">Image #%d</a>: %s %s',
             esc_url($attachment_edit_url),
             (int) $attachment_id,
-            esc_html__('File not found.', 'alttext-ai')
+            esc_html__('File not found.', 'alttext-ai'),
+            esc_html__('(System Issue)', 'alttext-ai')
           )
         );
       }
@@ -339,11 +346,7 @@ class ATAI_Attachment {
       return false;
     }
 
-    if ($width < 50 || $height < 50) {
-      if (strtolower($extension) === 'svg') {
-        // For SVG files, bypass the dimension check
-        return true;
-      }
+    if (!$is_svg && ($width < 50 || $height < 50)) {
       
       if ( $should_log ) {
         ATAI_Utility::log_error(
@@ -955,10 +958,25 @@ SQL;
 
     // Check permissions
     $this->check_attachment_permissions();
+    
 
-    // Set memory limit to prevent server errors
-    ini_set('memory_limit', '512M');
+    // Conservative memory management - only increase if needed
+    $current_memory = ini_get('memory_limit');
+    if ($current_memory !== '-1' && $current_memory !== 'unlimited') {
+      // Simple check: if current limit looks low, increase to 128M
+      $current_numeric = (int) $current_memory;
+      if ($current_numeric > 0 && $current_numeric < 128) {
+        @ini_set('memory_limit', '128M');
+      }
+    }
+    
+    // Allow user abort to prevent runaway processes
     ignore_user_abort(false);
+    
+    // Reset execution time for this batch
+    if (function_exists('set_time_limit')) {
+      @set_time_limit(60);
+    }
 
     global $wpdb;
     $post_id = intval($_REQUEST['post_id'] ?? 0);
@@ -973,6 +991,7 @@ SQL;
     $wc_only_featured = sanitize_text_field( $_REQUEST['wcOnlyFeatured'] ?? '0' );
     $batch_id = sanitize_text_field( $_REQUEST['batchId'] ?? '0' );
     $images_successful = $images_skipped = $loop_count = 0;
+    $processed_ids = array(); // Track processed IDs for bulk-select cleanup
     
     // Get accumulated skip reasons from previous batches
     $skip_reasons = get_transient('atai_bulk_skip_reasons_' . get_current_user_id()) ?: array();
@@ -996,10 +1015,9 @@ SELECT p.ID as post_id
 FROM {$wpdb->posts} p
     LEFT JOIN {$wpdb->postmeta} AS pm
        ON (p.ID = pm.post_id AND pm.meta_key = '_wp_attachment_image_alt')
-    LEFT JOIN {$wpdb->postmeta} AS mt1 ON (p.ID = mt1.post_id)
 WHERE p.ID > %d
   AND (p.post_mime_type LIKE 'image/%')
-  AND (pm.post_id IS NULL OR (mt1.meta_key = '_wp_attachment_image_alt' AND mt1.meta_value = ''))
+  AND (pm.post_id IS NULL OR TRIM(COALESCE(pm.meta_value, '')) = '')
   AND p.post_type = 'attachment'
   AND (p.post_status = 'inherit')
 SQL;
@@ -1067,6 +1085,7 @@ SQL;
       // Clean up the transient
       delete_transient('atai_bulk_skip_reasons_' . get_current_user_id());
       
+      
       // Determine appropriate completion message based on context
       $completion_message = $last_post_id > 0 
         ? __( 'Bulk generation complete! All remaining images have been processed.', 'alttext-ai' )
@@ -1104,7 +1123,8 @@ SQL;
       ) );
     }
 
-    foreach ( $images_to_update as &$image ) {
+
+    foreach ( $images_to_update as $image ) {
       $attachment_id = ( $mode === 'bulk-select' ) ? $image : $image->post_id;
       if ( defined( 'ATAI_BULK_DEBUG' ) ) {
         ATAI_Utility::log_error( sprintf("BulkGenerate: Attachment ID %d", $attachment_id) );
@@ -1124,9 +1144,8 @@ SQL;
         }
         
         if ( $mode === 'bulk-select' ) {
-          // Remove the attachment ID from the transient
-          $images_to_update = array_diff( $images_to_update, array( $attachment_id ) );
-          set_transient( 'alttext_bulk_select_generate_' . $batch_id, $images_to_update, 2048 );
+          // Mark for removal instead of immediate array manipulation
+          $processed_ids[] = $attachment_id;
         }
         
         if ( ++$loop_count >= $query_limit ) {
@@ -1139,6 +1158,7 @@ SQL;
       
 
       if ( $response === 'insufficient_credits' ) {
+        
         wp_send_json( array(
           'status'      => 'success',
           'message'     => __( 'Images partially updated (no more credits).', 'alttext-ai' ),
@@ -1151,6 +1171,7 @@ SQL;
       }
 
       if ( $response === 'url_access_error' ) {
+        
         wp_send_json( array(
           'status'      => 'error',
           'message'     => __( 'Unable to access image URLs. Your images may be on a private server.', 'alttext-ai' ),
@@ -1174,9 +1195,8 @@ SQL;
       }
 
       if ( $mode === 'bulk-select' ) {
-        // Remove the attachment ID from the transient
-        $images_to_update = array_diff( $images_to_update, array( $attachment_id ) );
-        set_transient( 'alttext_bulk_select_generate_' . $batch_id, $images_to_update, 2048 );
+        // Mark for removal instead of immediate array manipulation
+        $processed_ids[] = $attachment_id;
       }
 
       if ( ++$loop_count >= $query_limit ) {
@@ -1184,22 +1204,29 @@ SQL;
       }
     }
 
-    // Delete transients if all selected images are processed
-    if ( $mode === 'bulk-select' && count( $images_to_update ) === 0 ) {
-      delete_transient( 'alttext_bulk_select_generate_' . $batch_id );
-      delete_transient( 'alttext_bulk_select_generate_redirect_' . $batch_id );
-
-      $recursive = false;
+    // Efficient cleanup for bulk-select mode
+    if ( $mode === 'bulk-select' ) {
+      if ( ! empty( $processed_ids ) ) {
+        // Remove processed IDs efficiently
+        $images_to_update = array_diff( $images_to_update, $processed_ids );
+        if ( empty( $images_to_update ) ) {
+          delete_transient( 'alttext_bulk_select_generate_' . $batch_id );
+          delete_transient( 'alttext_bulk_select_generate_redirect_' . $batch_id );
+          $recursive = false;
+        } else {
+          set_transient( 'alttext_bulk_select_generate_' . $batch_id, $images_to_update, 2048 );
+        }
+      }
+      
+      // Clean up processed IDs array to free memory
+      unset( $processed_ids );
     }
 
     // Save accumulated skip reasons for next batch (or final display)
     set_transient('atai_bulk_skip_reasons_' . get_current_user_id(), $skip_reasons, 3600);
     
-    // Clean up memory after batch processing
-    wp_cache_flush();
-    if ( function_exists( 'gc_collect_cycles' ) ) {
-      gc_collect_cycles();
-    }
+    
+    // Clear process lock when batch completes or we're about to finish
     
     // Simple batch message - no skip reasons during processing
     if ( $images_skipped > 0 ) {
@@ -1207,6 +1234,7 @@ SQL;
     } else {
       $message = sprintf(__('Batch processed: %d updated', 'alttext-ai'), $images_successful);
     }
+
       
     wp_send_json( array(
       'status'          => 'success',
@@ -1332,6 +1360,7 @@ SQL;
     ) );
   }
 
+
   /**
    * Check if the current user has permission to manage attachments
    *
@@ -1383,6 +1412,7 @@ SQL;
       'message' => __( 'Image is eligible for auto-generating ALT text.', 'alttext-ai' )
     ) );
   }
+
 
   /**
    * Add Generate ALT Text option to bulk actions
@@ -1518,7 +1548,7 @@ SQL;
     $handle = fopen( $filename, "r" );
 
     // Read the first row as header
-    $header = fgetcsv( $handle, ATAI_CSV_LINE_LENGTH, ',' );
+    $header = fgetcsv( $handle, ATAI_CSV_LINE_LENGTH, ',', '"' );
 
     // Check if the required columns exist and capture their indexes
     $asset_id_index = array_search( 'asset_id', $header );
@@ -1537,7 +1567,7 @@ SQL;
     }
 
     // Loop through the rest of the rows and use the captured indexes to get the values
-    while ( ( $data = fgetcsv( $handle, 1000, ',' ) ) !== FALSE ) {
+    while ( ( $data = fgetcsv( $handle, 1000, ',', '"' ) ) !== FALSE ) {
       global $wpdb;
 
       $asset_id = $data[$asset_id_index];

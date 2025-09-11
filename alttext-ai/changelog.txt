@@ -1,5 +1,11 @@
 *** AltText.ai Changelog ***
 
+2025-09-10 - version 1.10.9
+* Improved: Bulk processing now runs up to 10x faster for sites with large media libraries
+* Improved: Better handling of SVG images - they'll now process correctly without size restrictions
+* Improved: If bulk generation gets interrupted, you can seamlessly continue right where you left off
+* Improved: Memory usage optimized for shared hosting - plays nicer with resource limits
+
 2025-08-01 - version 1.10.5
 * Improved: Enhanced bulk generation reliability with automatic progress saving and recovery
 * Improved: Smarter error detection and handling during bulk operations

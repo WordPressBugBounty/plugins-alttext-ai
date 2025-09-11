@@ -710,6 +710,10 @@
                   </div>
                   <div class="-mt-1 text-sm leading-6">
                     <label for="atai_wp_generate_metadata" class="font-medium text-gray-900"><?php esc_html_e( 'Allow WordPress to generate missing metadata for processed images.', 'alttext-ai' ); ?></label>
+                    <p class="text-amber-600 text-sm mt-1">
+                      <strong><?php esc_html_e( 'Performance Warning:', 'alttext-ai' ); ?></strong> <?php esc_html_e( 'This setting can cause bulk processing failures and server timeouts. Only enable if images were uploaded via FTP or are missing thumbnails.', 'alttext-ai' ); ?>
+                      <strong><?php esc_html_e( 'Most users should leave this unchecked.', 'alttext-ai' ); ?></strong>
+                    </p>
                   </div>
                 </div>
                 <div class="flex relative gap-x-3">

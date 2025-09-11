@@ -25,14 +25,8 @@ class ATAI_Activator {
    *
    * @since 1.0.33
    * @access public
-   *
-   * @param string $plugin The plugin that was activated.
    */
-  public static function activate( $plugin ) {
-    // Bail early if the plugin being activated is not ALT Text AI
-    if ( $plugin != plugin_basename( ATAI_PLUGIN_FILE ) ) {
-      return;
-    }
+  public static function activate() {
 
     // Create the database table
     require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-atai-database.php';
