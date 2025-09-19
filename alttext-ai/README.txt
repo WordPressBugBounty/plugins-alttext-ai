@@ -5,7 +5,7 @@ Tags: image alt text, AI,  accessibility, alternative text, image to text
 Requires PHP: 7.4
 Requires at least: 4.7
 Tested up to: 6.8
-Stable tag: 1.10.10
+Stable tag: 1.10.11
 WC requires at least: 3.3
 WC tested up to: 10.1
 License: GPLv2 or later
@@ -68,6 +68,9 @@ Added support for SEOPress keywords.
 We now integrate Yoast, AllInOne, and RankMath focus keyphrases for alt text.
 
 == Changelog ==
+
+= 1.10.11 - 2025-09-18 =
+* Fixed: Alt text generated in media modal now more reliably persists
 
 = 1.10.10 - 2025-09-11 =
 * Fixed: Media Library bulk action now displays current progress

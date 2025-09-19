@@ -1,5 +1,8 @@
 *** AltText.ai Changelog ***
 
+2025-09-18 - version 1.10.11
+* Fixed: Alt text generated in media modal now more reliably persists
+
 2025-09-11 - version 1.10.10
 * Fixed: Media Library bulk action now displays current progress
 
