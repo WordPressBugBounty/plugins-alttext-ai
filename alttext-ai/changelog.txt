@@ -1,5 +1,11 @@
 *** AltText.ai Changelog ***
 
+2025-10-02 - version 1.10.12
+* Improved: Better language detection for multilingual sites using WPML and Polylang
+* Improved: More reliable alt text generation with automatic retry on temporary errors
+* Fixed: Alt text now generates correctly in the right language for translated images
+* Fixed: Plugin no longer processes trashed or deleted images
+
 2025-09-18 - version 1.10.11
 * Fixed: Alt text generated in media modal now more reliably persists
 

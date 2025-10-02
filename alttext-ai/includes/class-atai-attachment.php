@@ -34,6 +34,49 @@
  */
 class ATAI_Attachment {
   /**
+   * Normalize and validate a language code.
+   *
+   * Supports 3-tier fallback:
+   * 1. Perfect match (zh-cn → zh-cn)
+   * 2. Base language fallback (pt-ao → pt, zh-Hant-HK → zh)
+   * 3. Auto-detection (xyz → auto-detect)
+   *
+   * @since 1.0.0
+   * @access private
+   *
+   * @param string $lang               The language code to normalize.
+   * @param int    $attachment_id      Attachment ID for auto-detection fallback.
+   * @param array  $supported_languages Map of supported language codes.
+   *
+   * @return string Normalized language code.
+   */
+  private function normalize_lang( $lang, $attachment_id, $supported_languages ) {
+    // Invalid input - fall back to auto-detection
+    if ( ! is_string( $lang ) || '' === trim( $lang ) ) {
+      return ATAI_Utility::lang_for_attachment( $attachment_id );
+    }
+
+    // Normalize: lowercase and trim (preserves region codes)
+    $lang = strtolower( trim( $lang ) );
+
+    // Perfect match - use as-is
+    if ( isset( $supported_languages[ $lang ] ) ) {
+      return $lang;
+    }
+
+    // Try base language fallback whenever there's a hyphen (handles multi-subtag codes like zh-Hant-HK)
+    if ( false !== strpos( $lang, '-' ) ) {
+      $base = explode( '-', $lang, 2 )[0];
+      if ( isset( $supported_languages[ $base ] ) ) {
+        return $base;
+      }
+    }
+
+    // Unsupported language - fall back to auto-detection
+    return ATAI_Utility::lang_for_attachment( $attachment_id );
+  }
+
+  /**
    * Generate alt text for an image/attachment.
    *
    * @since 1.0.0
@@ -41,7 +84,18 @@ class ATAI_Attachment {
    *
    * @param integer $attachment_id  ID of the attachment.
    * @param string  $attachment_url URL of the attachment. $attachment_id has priority if both are provided.
-   * @param string  $options        API Options to customize the API call.
+   * @param array   $options        API Options to customize the API call. Supported keys:
+   *                                 - 'overwrite' (bool): Whether to overwrite existing alt text. Default true.
+   *                                 - 'ecomm' (array): E-commerce product data (product name, brand).
+   *                                 - 'keywords' (array): SEO keywords to incorporate.
+   *                                 - 'negative_keywords' (array): Keywords to avoid.
+   *                                 - 'lang' (string): Language code (BCP-47-like, lowercase). Auto-detected if not provided.
+   *                                 - 'explicit_post_id' (int): Force SEO keyword lookup from specific post.
+   *
+   *                                 Note: Global 'atai_force_lang' setting will override 'lang' if enabled.
+   *
+   * @return string|false|WP_Error  Generated alt text string on success; false, WP_Error, or error code string on failure.
+   *                                 Known error codes: 'insufficient_credits', 'url_access_error'.
    */
   public function generate_alt( $attachment_id, $attachment_url = null, $options = [] ) {
     $api_key = ATAI_Utility::get_api_key();
@@ -56,16 +110,21 @@ class ATAI_Attachment {
       return false;
     }
 
-    // Merge options with defaults
+    // Merge options with defaults (wp_parse_args gives priority to first arg)
     $api_options = wp_parse_args(
       $options,
       array(
-        'overwrite'   => true,
-        'ecomm'       => [],
-        'keywords'    => [],
-        'lang' => ATAI_Utility::lang_for_attachment( $attachment_id )
+        'overwrite'         => true,
+        'ecomm'             => array(),
+        'keywords'          => array(),
+        'negative_keywords' => array(),
+        'lang'              => ATAI_Utility::lang_for_attachment( $attachment_id ),
       )
     );
+
+    // Normalize booleans that might arrive as strings/ints via filters
+    $api_options['overwrite'] = ! empty( $api_options['overwrite'] ) ? true : false;
+
     $gpt_prompt = get_option('atai_gpt_prompt');
     if ( !empty($gpt_prompt) ) {
       $api_options['gpt_prompt'] = $gpt_prompt;
@@ -96,21 +155,92 @@ class ATAI_Attachment {
       }
     }
 
+    /**
+     * Filter API options before sending to the AltText.ai API.
+     *
+     * Allows integrators to modify options per-site or per-attachment (e.g., custom keywords, throttling).
+     *
+     * @param array  $api_options     The final API options array.
+     * @param int    $attachment_id   The attachment ID being processed.
+     * @param string $attachment_url  The attachment URL.
+     */
+    $api_options = apply_filters( 'atai_before_create_image_options', $api_options, $attachment_id, $attachment_url );
+
+    // Normalize keyword arrays (handles scalars from filters/integrations)
+    $api_options['keywords']          = array_map( 'sanitize_text_field', (array) ( $api_options['keywords'] ?? array() ) );
+    $api_options['negative_keywords'] = array_map( 'sanitize_text_field', (array) ( $api_options['negative_keywords'] ?? array() ) );
+
+    // If present, ensure explicit_post_id is a safe integer
+    if ( isset( $api_options['explicit_post_id'] ) ) {
+      $api_options['explicit_post_id'] = absint( $api_options['explicit_post_id'] );
+    }
+
+    // Cache supported languages once (used in both normalization paths)
+    $supported_languages = ATAI_Utility::supported_languages();
+
+    // Normalize language (ensure a default even if a filter removed it)
+    $api_options['lang'] = $this->normalize_lang(
+      $api_options['lang'] ?? ATAI_Utility::lang_for_attachment( $attachment_id ),
+      $attachment_id,
+      $supported_languages
+    );
+
+    // Enforce force_lang setting if enabled (overrides filter and caller language)
+    if ( 'yes' === get_option( 'atai_force_lang' ) ) {
+      $forced_lang = get_option( 'atai_lang' );
+      if ( is_string( $forced_lang ) && '' !== trim( $forced_lang ) ) {
+        $api_options['lang'] = $this->normalize_lang(
+          $forced_lang,
+          $attachment_id,
+          $supported_languages
+        );
+      }
+    }
+
     $api            = new ATAI_API( $api_key );
     $response_code = null;
-    $max_retries = 5;
+    $max_retries = apply_filters( 'atai_max_retries', 3 ); // Default 3 retries for admin-AJAX responsiveness
     $delay = 1; // 1 second
-    
+    $start_time = microtime( true );
+    $time_budget = apply_filters( 'atai_retry_time_budget', 12 ); // Maximum seconds for all retries
+
     for ($attempt = 0; $attempt < $max_retries; $attempt++) {
       $response = $api->create_image( $attachment_id, $attachment_url, $api_options, $response_code );
-  
-      if ($response_code != '429') {
-          break; // Exit if not rate-limited
+
+      // Hard-fail on unrecoverable client/auth errors (no retry)
+      $hard_fail_codes = apply_filters( 'atai_hard_fail_http_codes', array( 400, 401, 403, 404, 422 ) );
+      if ( ! is_array( $hard_fail_codes ) ) {
+          $hard_fail_codes = array( 400, 401, 403, 404, 422 ); // Reset to safe default if filter returns non-array
       }
-  
+      if ( $response_code !== null && in_array( (int) $response_code, $hard_fail_codes, true ) ) {
+          break; // Exit immediately on unrecoverable errors
+      }
+
+      // Retry on rate limiting (429) and server errors (503, 504, 408)
+      $retryable_codes = apply_filters( 'atai_retryable_http_codes', array( 429, 503, 504, 408 ) );
+      if ( ! is_array( $retryable_codes ) ) {
+          $retryable_codes = array( 429, 503, 504, 408 ); // Reset to safe default if filter returns non-array
+      }
+      $retryable = in_array( (int) $response_code, $retryable_codes, true );
+
+      if ( ! $retryable ) {
+          break; // Exit if not a retryable error
+      }
+
+      // Check time budget before sleeping (prevents long final retry)
+      if ( microtime( true ) - $start_time > $time_budget ) {
+          break; // Exceeded time budget, bail out
+      }
+
       if ($attempt < $max_retries - 1) {
-          sleep($delay);
-          $delay *= 2; // (1s → 2s → 4s → 8s)
+          // Add jitter (up to 250ms) to prevent thundering herd
+          // Fallback to wp_rand for older PHP or low-entropy environments
+          $jitter_microseconds = function_exists( 'random_int' ) ? random_int( 0, 250000 ) : wp_rand( 0, 250000 );
+          $delay_microseconds = ( $delay * 1000000 ) + $jitter_microseconds;
+          usleep( $delay_microseconds );
+
+          // Exponential backoff with cap at 8 seconds
+          $delay = min( $delay * 2, 8 );
       }
     }
 
@@ -196,6 +326,11 @@ class ATAI_Attachment {
    * @return boolean  True if eligible, false otherwise.
    */
   public function is_attachment_eligible( $attachment_id, $context = 'generate' ) {
+    // Bypass eligibility checks in test mode
+    if ( defined( 'ATAI_TESTING' ) && ATAI_TESTING ) {
+      return true;
+    }
+
     // Log errors for actual processing (single or bulk), but not for eligibility checks
     $should_log = ($context !== 'check');
 
@@ -914,12 +1049,18 @@ SQL;
   }
 
   /**
-   * Generate alt text for newly added image/attachment
+   * Generate alt text for newly added image/attachment.
+   *
+   * For WPML-enabled sites, also generates alt text for all translated versions
+   * of the attachment in their respective languages.
    *
    * @since 1.0.0
    * @access public
    *
-   * @param integer $attachment_id ID of the newly uploaded image/attachment
+   * @param integer $attachment_id ID of the newly uploaded image/attachment.
+   *
+   * @changed 2025-10-02 Fixed WPML language detection by passing lang explicitly
+   *                     to avoid race conditions with WPML metadata initialization.
    */
   public function add_attachment( $attachment_id ) {
     if ( get_option( 'atai_enabled' ) === 'no' ) {
@@ -933,16 +1074,38 @@ SQL;
 
     $this->generate_alt( $attachment_id );
 
-    // For WPML, we have to also generate the alt for the translated image attachments:
-    if ( !ATAI_Utility::has_wpml() ) { return; }
+    // Generate alt text for WPML translated versions in their respective languages
+    if ( ! ATAI_Utility::has_wpml() ) {
+      return;
+    }
 
     $active_languages = apply_filters( 'wpml_active_languages', NULL );
-    $language_codes = array_keys($active_languages);
-    foreach( $language_codes as $lang ) {
+
+    // Guard against WPML returning null/false
+    if ( empty( $active_languages ) || ! is_array( $active_languages ) ) {
+      return;
+    }
+
+    $language_codes = array_keys( $active_languages );
+
+    foreach ( $language_codes as $lang ) {
       $translated_attachment_id = apply_filters( 'wpml_object_id', $attachment_id, 'attachment', FALSE, $lang );
-      if ( isset($translated_attachment_id) && ($translated_attachment_id != $attachment_id) ) {
-        $this->generate_alt( $translated_attachment_id );
+
+      // Ensure translated attachment exists, is different, is actually an attachment, and not trashed
+      if ( ! $translated_attachment_id || $translated_attachment_id === $attachment_id ) {
+        continue;
       }
+
+      $translated_post_type = get_post_type( $translated_attachment_id );
+      $translated_post_status = get_post_status( $translated_attachment_id );
+
+      if ( 'attachment' !== $translated_post_type || 'trash' === $translated_post_status ) {
+        continue;
+      }
+
+      // Pass language explicitly to avoid timing issues with WPML metadata
+      // Note: force_lang setting is enforced inside generate_alt() if enabled
+      $this->generate_alt( $translated_attachment_id, null, array( 'lang' => $lang ) );
     }
   }
 
@@ -979,9 +1142,9 @@ SQL;
     }
 
     global $wpdb;
-    $post_id = intval($_REQUEST['post_id'] ?? 0);
-    $last_post_id = intval($_REQUEST['last_post_id'] ?? 0);
-    $query_limit = min( max( intval($_REQUEST['posts_per_page'] ?? 0), 1), 5 ); // 5 images per batch max
+    $post_id = absint( $_REQUEST['post_id'] ?? 0 );
+    $last_post_id = absint( $_REQUEST['last_post_id'] ?? 0 );
+    $query_limit = min( max( absint( $_REQUEST['posts_per_page'] ?? 0 ), 1 ), 5 ); // 5 images per batch max
     $keywords = is_array($_REQUEST['keywords'] ?? null) ? array_map('sanitize_text_field', $_REQUEST['keywords']) : [];
     $negative_keywords = is_array($_REQUEST['negativeKeywords'] ?? null) ? array_map('sanitize_text_field', $_REQUEST['negativeKeywords']) : [];
     $mode = sanitize_text_field( $_REQUEST['mode'] ?? 'missing' );
@@ -1188,16 +1351,27 @@ SQL;
 
       $last_post_id = $attachment_id;
 
-      if ( ! is_array( $response ) && $response !== false ) {
+      // generate_alt() returns: string (alt text or error code), WP_Error, or false
+      // Success: non-empty string that isn't an error code
+      // Failure: false, empty string, WP_Error, or error code string
+      $is_error_code = false;
+      if ( is_wp_error( $response ) ) {
+        $is_error_code = true;
+      } elseif ( is_string( $response ) ) {
+        // Known error codes start with common error prefixes or are specific strings
+        $is_error_code = (
+          0 === strpos( $response, 'error_' ) ||
+          0 === strpos( $response, 'invalid_' ) ||
+          in_array( $response, array( 'insufficient_credits', 'url_access_error' ), true )
+        );
+      }
+
+      if ( is_string( $response ) && $response !== '' && ! $is_error_code ) {
         $images_successful++;
       } else {
         // API call failed - track the reason
         $images_skipped++;
-        if ( is_array( $response ) ) {
-          $skip_reasons['api_error'] = ($skip_reasons['api_error'] ?? 0) + 1;
-        } else {
-          $skip_reasons['generation_failed'] = ($skip_reasons['generation_failed'] ?? 0) + 1;
-        }
+        $skip_reasons['generation_failed'] = ($skip_reasons['generation_failed'] ?? 0) + 1;
       }
 
       if ( $mode === 'bulk-select' ) {
@@ -1269,10 +1443,10 @@ SQL;
       return;
     }
 
-    $attachment_id  = isset( $_GET['item'] ) ? intval($_GET['item']) : 0;
+    $attachment_id  = isset( $_GET['item'] ) ? absint( $_GET['item'] ) : 0;
 
     if ( ! $attachment_id ) {
-      $attachment_id  = isset( $_GET['post'] ) ? intval($_GET['post']) : 0;
+      $attachment_id  = isset( $_GET['post'] ) ? absint( $_GET['post'] ) : 0;
     }
 
     // Bail early if attachment ID is not valid
@@ -1304,7 +1478,7 @@ SQL;
       return;
     }
 
-    $attachment_id = sanitize_text_field( $_REQUEST['attachment_id'] );
+    $attachment_id = absint( $_REQUEST['attachment_id'] );
     $keywords = is_array($_REQUEST['keywords']) ? array_map('sanitize_text_field', $_REQUEST['keywords']) : [];
 
     // Generate ALT text
@@ -1349,7 +1523,7 @@ SQL;
     // Check permissions
     $this->check_attachment_permissions();
 
-    $attachment_id = intval( $_REQUEST['attachment_id'] ?? 0 );
+    $attachment_id = absint( $_REQUEST['attachment_id'] ?? 0 );
     $alt_text = sanitize_text_field( $_REQUEST['alt_text'] ?? '' );
 
     if ( ! $attachment_id ) {
@@ -1397,7 +1571,7 @@ SQL;
     // Check permissions
     $this->check_attachment_permissions();
 
-    $attachment_id =  intval( $_POST['attachment_id'] ?? 0 );
+    $attachment_id = absint( $_POST['attachment_id'] ?? 0 );
 
     // Bail early if post ID is not valid
     if ( ! $attachment_id ) {
@@ -1510,6 +1684,7 @@ SQL;
    * @param Int $tr_id The ID of the new translated post.
    * @param String $lang_slug Language code of the new translation.
    *
+   * @changed 2025-10-02 Pass explicit language to avoid race conditions (similar to WPML fix).
    */
   public function on_translation_created( $post_id, $tr_id, $lang_slug ) {
     $post = get_post($post_id);
@@ -1522,7 +1697,17 @@ SQL;
       return;
     }
 
-    $this->add_attachment($tr_id);
+    // Generate alt text for the translation with explicit language
+    // Pass language explicitly to avoid timing issues with Polylang metadata
+    if ( get_option( 'atai_enabled' ) === 'no' || ! $this->is_attachment_eligible( $tr_id, 'add' ) ) {
+      return;
+    }
+
+    // Normalize language code (Polylang may pass uppercase or region variants)
+    $lang_slug = strtolower( (string) $lang_slug );
+
+    // Pass language explicitly (Polylang provides it in the hook)
+    $this->generate_alt( $tr_id, null, array( 'lang' => $lang_slug ) );
   }
 
   /**

@@ -19,6 +19,7 @@
  * @subpackage ATAI/includes
  * @author     AltText.ai <info@alttext.ai>
  */
+if ( ! class_exists( 'ATAI_Utility' ) ) {
 class ATAI_Utility {
   /**
 	 * Record the AltText.ai asset_id of an image attachment.
@@ -625,3 +626,4 @@ SQL;
     return null;
   }
 }
+} // End if class_exists check

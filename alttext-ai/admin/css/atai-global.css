@@ -1,1 +1,219 @@
-#atai-post-generate-button,.atai-generate-button{margin-top:.375rem!important;margin-bottom:.625rem!important;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}#atai-generate-button-keywords-checkbox,#atai-generate-button-overwrite-checkbox,#atai-generate-button-process-external-checkbox,.atai-generate-button__keywords-checkbox{margin-top:0!important}.atai-generate-button__keywords-checkbox-wrapper{margin:.5rem 0 .25rem;display:flex;align-items:center;font-weight:500;color:#111827}.atai-generate-button__keywords-textfield-wrapper input{max-width:100%!important}#atai-post-generate-button a,.atai-generate-button a{display:inline-flex!important;align-items:center!important;gap:.375rem!important;cursor:pointer!important;padding:.5rem 1rem .5rem .75rem!important;font-size:.925rem!important;line-height:1.5rem!important;font-weight:500!important;border-radius:.375rem!important;border:1px solid #0000!important;background-color:#2563eb!important;color:#fff!important;box-shadow:0 0 0 1px #0000,0 0 0 1px #0000,0 0 #0000!important;transition:color 75ms,background-color 75ms!important}#atai-post-generate-button.atai-hidden,#atai-start-over-button.atai-hidden,.atai-generate-button+.description,.atai-generate-button.atai-hidden,[data-bulk-generate-start].atai-hidden,button.atai-hidden{display:none!important}#atai-post-generate-button span,.atai-generate-button span{color:#fff!important}#atai-post-generate-button a:hover,.atai-generate-button a:hover{background-color:#1d4ed8!important}#atai-post-generate-button a:focus,.atai-generate-button a:focus{outline:2px solid #0000!important;outline-offset:2px!important;box-shadow:0 0 0 3px #93c5fd!important}#atai-post-generate-button a:active,.atai-generate-button a:active{box-shadow:0 0 0 3px #6b728080!important}#atai-post-generate-button a:active:disabled,#atai-post-generate-button a:focus:disabled,.atai-generate-button a:active:disabled,.atai-generate-button a:focus:disabled{box-shadow:none!important}#atai-post-generate-button img,.atai-generate-button img{width:1.75rem}#atai-post-generate-button .disabled,.atai-generate-button .disabled{pointer-events:none!important;color:#000!important}.atai-generate-button .disabled+label{pointer-events:none!important;color:#9ca3af!important}#atai-post-generate-button .atai-update-notice,.atai-generate-button .atai-update-notice{visibility:hidden;margin-top:5px;display:block}#atai-post-generate-button .atai-update-notice--success,.atai-generate-button .atai-update-notice--success{visibility:visible;color:#059669}#atai-post-generate-button .atai-update-notice--error,.atai-generate-button .atai-update-notice--error{visibility:visible;color:#dc2626}[data-post-bulk-generate-keywords-checkbox]:checked~[data-post-bulk-generate-keywords]{display:block}#atai-generate-meta-box .inside>:not([hidden])~:not([hidden]){margin:.25rem 0}#atai-generate-button-keywords-checkbox+label+input{margin-top:.5rem}.media-sidebar #atai-post-generate-button a,.media-sidebar .atai-generate-button a{padding:.4rem .8rem!important;font-size:.85rem!important}.atai-generate-button .atai-generate-button__anchor.atai-processing.disabled,.atai-generate-button__anchor.atai-processing{background-color:#3b82f6!important;color:#fff!important;border-color:#3b82f6!important;opacity:1!important;pointer-events:none!important;padding-right:1.5rem!important}.atai-processing-dots:after{content:"";display:inline-block;width:0;animation:atai-dots 1.4s infinite}@keyframes atai-dots{0%,20%{content:""}40%{content:"."}60%{content:".."}80%,to{content:"..."}}.atai-progress-pulse{position:relative;overflow:hidden}.atai-progress-pulse:before{content:"";position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,#0000,#fff6,#0000);animation:atai-progress-shimmer 2s infinite}@keyframes atai-progress-shimmer{0%{left:-100%}to{left:100%}}.atai-heartbeat{animation:atai-heartbeat 2s ease-in-out infinite}@keyframes atai-heartbeat{0%,to{transform:scale(1);opacity:1}50%{transform:scale(1.02);opacity:.9}}
+/* Custom classes needed for JS dynamic buttons */
+
+.atai-generate-button,
+#atai-post-generate-button {
+  margin-top: 0.375rem !important;
+  margin-bottom: 0.625rem !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.atai-generate-button__keywords-checkbox,
+#atai-generate-button-overwrite-checkbox,
+#atai-generate-button-process-external-checkbox,
+#atai-generate-button-keywords-checkbox {
+  margin-top: 0 !important;
+}
+
+.atai-generate-button__keywords-checkbox-wrapper {
+  margin: 0.5rem 0 0.25rem;
+  display: flex;
+  align-items: center;
+  font-weight: 500;
+  color: rgb(17, 24, 39);
+}
+
+.atai-generate-button__keywords-textfield-wrapper input {
+  max-width: 100% !important;
+}
+
+.atai-generate-button a,
+#atai-post-generate-button a {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.375rem !important;
+  cursor: pointer !important;
+  padding: 0.5rem 1rem 0.5rem 0.75rem !important;
+  font-size: 0.925rem !important;
+  line-height: 1.5rem !important;
+  font-weight: 500 !important;
+  border-radius: 0.375rem !important;
+  border: 1px solid transparent !important;
+  background-color: rgb(37, 99, 235) !important;
+  color: rgb(255, 255, 255) !important;
+  box-shadow: 0 0 0 1px transparent, 0 0 0 1px transparent, 0 0 #0000 !important;
+  transition: color 75ms, background-color 75ms !important;
+}
+
+/* Allow JavaScript to hide buttons during processing */
+.atai-generate-button.atai-hidden,
+#atai-post-generate-button.atai-hidden,
+#atai-start-over-button.atai-hidden,
+[data-bulk-generate-start].atai-hidden,
+button.atai-hidden {
+  display: none !important;
+}
+
+/* Hide the alt text paragraph, breaks on certain screensizes */
+.atai-generate-button + .description {
+  display: none !important;
+}
+
+.atai-generate-button span,
+#atai-post-generate-button span {
+  color: rgb(255, 255, 255) !important;
+}
+
+.atai-generate-button a:hover,
+#atai-post-generate-button a:hover {
+  background-color: rgb(29, 78, 216) !important;
+}
+
+.atai-generate-button a:focus,
+#atai-post-generate-button a:focus {
+  outline: 2px solid transparent !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 0 3px rgb(147, 197, 253) !important;
+}
+
+.atai-generate-button a:active,
+#atai-post-generate-button a:active {
+  box-shadow: 0 0 0 3px rgb(107, 114, 128, 0.5) !important;
+}
+
+.atai-generate-button a:focus:disabled,
+#atai-post-generate-button a:focus:disabled,
+.atai-generate-button a:active:disabled,
+#atai-post-generate-button a:active:disabled {
+  box-shadow: none !important;
+}
+
+.atai-generate-button img,
+#atai-post-generate-button img {
+  width: 1.75rem;
+}
+
+.atai-generate-button .disabled,
+#atai-post-generate-button .disabled {
+  pointer-events: none !important;
+  color: rgb(0, 0, 0) !important;
+}
+
+.atai-generate-button .disabled + label {
+  pointer-events: none !important;
+  color: rgb(156, 163, 175) !important;
+}
+
+.atai-generate-button .atai-update-notice,
+#atai-post-generate-button .atai-update-notice {
+  visibility: hidden;
+  margin-top: 5px;
+  display: block;
+}
+
+.atai-generate-button .atai-update-notice--success,
+#atai-post-generate-button .atai-update-notice--success {
+  visibility: visible;
+  color: rgb(5, 150, 105);
+}
+
+.atai-generate-button .atai-update-notice--error,
+#atai-post-generate-button .atai-update-notice--error {
+  visibility: visible;
+  color: rgb(220, 38, 38);
+}
+
+[data-post-bulk-generate-keywords-checkbox]:checked
+  ~ [data-post-bulk-generate-keywords] {
+  display: block;
+}
+
+#atai-generate-meta-box .inside > :not([hidden]) ~ :not([hidden]) {
+  margin: 0.25rem 0;
+}
+
+/* Keywords inside the Gutenberg box */
+#atai-generate-button-keywords-checkbox + label + input {
+  margin-top: 0.5rem;
+}
+
+.media-sidebar #atai-post-generate-button a,
+.media-sidebar .atai-generate-button a {
+  padding: 0.4rem 0.8rem !important;
+  font-size: 0.85rem !important;
+}
+
+/* Processing state for buttons - using Tailwind blue variants */
+.atai-generate-button .atai-generate-button__anchor.atai-processing.disabled,
+.atai-generate-button__anchor.atai-processing {
+  background-color: rgb(59, 130, 246) !important; /* blue-500 */
+  color: rgb(255, 255, 255) !important; /* white */
+  border-color: rgb(59, 130, 246) !important; /* blue-500 */
+  opacity: 1 !important;
+  pointer-events: none !important;
+  padding-right: 1.5rem !important; /* Extra padding for animated dots */
+}
+
+/* Processing dots animation for single image generation buttons */
+.atai-processing-dots::after {
+  content: '';
+  display: inline-block;
+  width: 0;
+  animation: atai-dots 1.4s infinite;
+}
+
+@keyframes atai-dots {
+  0%, 20% {
+    content: '';
+  }
+  40% {
+    content: '.';
+  }
+  60% {
+    content: '..';
+  }
+  80%, 100% {
+    content: '...';
+  }
+}
+
+/* Bulk processing page animations */
+.atai-progress-pulse {
+  position: relative;
+  overflow: hidden;
+}
+
+.atai-progress-pulse::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  animation: atai-progress-shimmer 2s infinite;
+}
+
+@keyframes atai-progress-shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+.atai-heartbeat {
+  animation: atai-heartbeat 2s ease-in-out infinite;
+}
+
+@keyframes atai-heartbeat {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.02);
+    opacity: 0.9;
+  }
+}

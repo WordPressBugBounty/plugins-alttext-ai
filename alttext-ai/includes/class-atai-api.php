@@ -21,6 +21,7 @@
  * @subpackage ATAI/includes
  * @author     AltText.ai <info@alttext.ai>
  */
+if ( ! class_exists( 'ATAI_API' ) ) {
 class ATAI_API {
   /**
 	 * The API key used to connect wit hte client.
@@ -302,3 +303,4 @@ class ATAI_API {
     return $response_body;
   }
 }
+} // End if class_exists check
