@@ -23,14 +23,27 @@
     ),
     'br' => array()
   );
+
+  // Multisite network control checks
+  $is_multisite = is_multisite();
+  $is_main_site = is_main_site();
+  $network_controls_api_key = $is_multisite && get_site_option( 'atai_network_api_key' ) === 'yes';
+  $network_controls_all_settings = $is_multisite && get_site_option( 'atai_network_all_settings' ) === 'yes';
+  $network_hides_credits = $is_multisite && ! $is_main_site && get_site_option( 'atai_network_hide_credits' ) === 'yes';
+
+  // Settings are network-controlled only when all settings are shared (not just API key)
+  $settings_network_controlled = $is_multisite && ! $is_main_site && $network_controls_all_settings;
+
+  // API key is locked when either network API key OR all settings are shared
+  $api_key_locked = $is_multisite && ! $is_main_site && ( $network_controls_api_key || $network_controls_all_settings );
 ?>
 
 <?php
-  $lang = get_option( 'atai_lang' );
+  $lang = ATAI_Utility::get_setting( 'atai_lang', ATAI_Utility::get_default_language() );
   $supported_languages = ATAI_Utility::supported_languages();
-  $ai_model_name = get_option( 'atai_model_name' );
+  $ai_model_name = ATAI_Utility::get_setting( 'atai_model_name' );
   $supported_models = ATAI_Utility::supported_model_names();
-  $timeout_secs = intval(get_option( 'atai_timeout', 20 ));
+  $timeout_secs = intval(ATAI_Utility::get_setting( 'atai_timeout', 20 ));
   $timeout_values = [10, 15, 20, 25, 30];
 ?>
 
@@ -109,11 +122,28 @@
   <h2 class="mb-0 text-2xl font-bold"><?php esc_html_e( 'AltText.ai WordPress Settings', 'alttext-ai' ); ?></h2>
   <?php settings_errors(); ?>
 
-  <form method="post" class="" action="<?php echo esc_url( admin_url() . 'options.php' ); ?>">
+  <?php if ( $settings_network_controlled || $api_key_locked ) : ?>
+    <div class="atai-network-controlled-notice notice notice-info" style="margin: 20px 0; padding: 12px; background-color: #e7f3ff; border-left: 4px solid #2271b1;">
+      <p style="margin: 0;">
+        <strong><?php esc_html_e( 'Network Settings Active:', 'alttext-ai' ); ?></strong>
+        <?php
+          if ( $settings_network_controlled ) {
+            esc_html_e( 'All settings are controlled by the network administrator and cannot be changed on this site.', 'alttext-ai' );
+          } else if ( $api_key_locked ) {
+            esc_html_e( 'The API key is shared across the network and cannot be changed on this site. Other settings can be configured locally.', 'alttext-ai' );
+          }
+        ?>
+      </p>
+    </div>
+  <?php endif; ?>
+
+  <form method="post" class="<?php echo $settings_network_controlled ? 'atai-network-controlled' : ''; ?>" action="<?php echo esc_url( admin_url() . 'options.php' ); ?>">
     <?php settings_fields( 'atai-settings' ); ?>
     <?php do_settings_sections( 'atai-settings' ); ?>
 
-    <input type="submit" name="submit" value="Save Changes" class="atai-button blue mt-4 cursor-pointer appearance-none no-underline shadow-sm">
+    <?php if ( ! $settings_network_controlled ) : ?>
+      <input type="submit" name="submit" value="Save Changes" class="atai-button blue mt-4 cursor-pointer appearance-none no-underline shadow-sm">
+    <?php endif; ?>
     <div class="mt-4 space-y-4 border-b-0 border-t border-solid divide-x-0 divide-y divide-solid sm:space-y-6 border-x-0 border-gray-900/10 divide-gray-900/10">
       <div class="">
         <div class="pb-12 mt-4 space-y-8 sm:pb-0 sm:space-y-0 sm:border-t">
@@ -127,15 +157,17 @@
                   name="atai_api_key"
                   value="<?php echo ( ATAI_Utility::get_api_key() ) ? '*********' : null; ?>"
                   class="block py-1.5 w-full text-gray-900 rounded-md border-0 ring-1 ring-inset ring-gray-300 shadow-sm sm:max-w-xs sm:text-sm sm:leading-6 focus:ring-2 focus:ring-inset placeholder:text-gray-400 focus:ring-primary-600"
-                  <?php echo ( $has_file_based_api_key || ATAI_Utility::get_api_key() ) ? 'readonly' : null; ?>
+                  <?php echo ( $has_file_based_api_key || ATAI_Utility::get_api_key() || $api_key_locked ) ? 'readonly' : null; ?>
                 >
-                <input
-                  type="submit"
-                  name="handle_api_key"
-                  class="<?php echo ( ATAI_Utility::get_api_key() ) ? 'atai-button black' : 'atai-button blue'; ?> relative no-underline cursor-pointer shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 whitespace-nowrap"
-                  value="<?php echo ( ATAI_Utility::get_api_key() ) ? esc_attr__( 'Clear API Key', 'alttext-ai' ) : esc_attr__( 'Add API Key', 'alttext-ai' ); ?>"
-                  <?php echo ( $has_file_based_api_key ) ? 'disabled' : null; ?>
-                >
+                <?php if ( ! $api_key_locked ) : ?>
+                  <input
+                    type="submit"
+                    name="handle_api_key"
+                    class="<?php echo ( ATAI_Utility::get_api_key() ) ? 'atai-button black' : 'atai-button blue'; ?> relative no-underline cursor-pointer shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 whitespace-nowrap"
+                    value="<?php echo ( ATAI_Utility::get_api_key() ) ? esc_attr__( 'Clear API Key', 'alttext-ai' ) : esc_attr__( 'Add API Key', 'alttext-ai' ); ?>"
+                    <?php echo ( $has_file_based_api_key ) ? 'disabled' : null; ?>
+                  >
+                <?php endif; ?>
               </div>
               <div class="mt-4 max-w-lg">
                 <?php if ( ! ATAI_Utility::get_api_key() ) : ?>
@@ -166,7 +198,7 @@
                     ?>
                     </p>
                   </div>
-                <?php else : ?>
+                <?php elseif ( ! $network_hides_credits ) : ?>
                   <div class="bg-primary-900/15 p-px rounded-lg">
                     <p class="py-2 m-0 px-4 leading-relaxed bg-primary-100 rounded-lg sm:p-4">
                     <?php
@@ -235,7 +267,7 @@
                       type="checkbox"
                       value="yes"
                       class="w-4 h-4 rounded border-gray-300 checked:bg-white text-primary-600 focus:ring-primary-600"
-                      <?php checked( 'yes', get_option( 'atai_force_lang' ) ); ?>
+                      <?php checked( 'yes', ATAI_Utility::get_setting( 'atai_force_lang' ) ); ?>
                     >
                   </div>
                   <div class="-mt-1 text-sm leading-6">
@@ -281,7 +313,7 @@
                       type="checkbox"
                       value="yes"
                       class="w-4 h-4 rounded border-gray-300 checked:bg-white text-primary-600 focus:ring-primary-600"
-                      <?php checked( 'yes', get_option( 'atai_update_title' ) ); ?>
+                      <?php checked( 'yes', ATAI_Utility::get_setting( 'atai_update_title' ) ); ?>
                     >
                   </div>
                   <div class="-mt-1 text-sm leading-6">
@@ -296,7 +328,7 @@
                       type="checkbox"
                       value="yes"
                       class="w-4 h-4 rounded border-gray-300 checked:bg-white text-primary-600 focus:ring-primary-600"
-                      <?php checked( 'yes', get_option( 'atai_update_caption' ) ); ?>
+                      <?php checked( 'yes', ATAI_Utility::get_setting( 'atai_update_caption' ) ); ?>
                     >
                   </div>
                   <div class="-mt-1 text-sm leading-6">
@@ -311,7 +343,7 @@
                       type="checkbox"
                       value="yes"
                       class="w-4 h-4 rounded border-gray-300 checked:bg-white text-primary-600 focus:ring-primary-600"
-                      <?php checked( 'yes', get_option( 'atai_update_description' ) ); ?>
+                      <?php checked( 'yes', ATAI_Utility::get_setting( 'atai_update_description' ) ); ?>
                     >
                   </div>
                   <div class="-mt-1 text-sm leading-6">
@@ -326,7 +358,7 @@
                       name="atai_alt_prefix"
                       id="atai_alt_prefix"
                       class="block py-1.5 w-full text-gray-900 rounded-md border-0 ring-1 ring-inset ring-gray-300 shadow-sm sm:text-sm sm:leading-6 focus:ring-2 focus:ring-inset placeholder:text-gray-400 focus:ring-primary-600"
-                      value="<?php echo esc_html ( get_option( 'atai_alt_prefix' ) ); ?>"
+                      value="<?php echo esc_html ( ATAI_Utility::get_setting( 'atai_alt_prefix' ) ); ?>"
                     >
                   </div>
                 </div>
@@ -338,7 +370,7 @@
                       name="atai_alt_suffix"
                       id="atai_alt_suffix"
                       class="block py-1.5 w-full text-gray-900 rounded-md border-0 ring-1 ring-inset ring-gray-300 shadow-sm sm:text-sm sm:leading-6 focus:ring-2 focus:ring-inset placeholder:text-gray-400 focus:ring-primary-600"
-                      value="<?php echo esc_html ( get_option( 'atai_alt_suffix' ) ); ?>"
+                      value="<?php echo esc_html ( ATAI_Utility::get_setting( 'atai_alt_suffix' ) ); ?>"
                     >
                   </div>
                 </div>
@@ -358,7 +390,7 @@
                       type="checkbox"
                       value="yes"
                       class="w-4 h-4 rounded border-gray-300 checked:bg-white text-primary-600 focus:ring-primary-600"
-                      <?php checked( 'yes', get_option( 'atai_enabled' ) ); ?>
+                      <?php checked( 'yes', ATAI_Utility::get_setting( 'atai_enabled' ) ); ?>
                     >
                   </div>
                   <div class="-mt-1 text-sm leading-6">
@@ -382,7 +414,7 @@
                       name="atai_type_extensions"
                       id="atai_type_extensions"
                       class="block py-1.5 w-full text-gray-900 rounded-md border-0 ring-1 ring-inset ring-gray-300 shadow-sm sm:text-sm sm:leading-6 focus:ring-2 focus:ring-inset placeholder:text-gray-400 focus:ring-primary-600"
-                      value="<?php echo esc_html ( get_option( 'atai_type_extensions' ) ); ?>"
+                      value="<?php echo esc_html ( ATAI_Utility::get_setting( 'atai_type_extensions' ) ); ?>"
                     >
                   </div>
                   <p class="mt-1 text-gray-500">
@@ -410,7 +442,7 @@
                       name="atai_excluded_post_types"
                       id="atai_excluded_post_types"
                       class="block py-1.5 w-full text-gray-900 rounded-md border-0 ring-1 ring-inset ring-gray-300 shadow-sm sm:text-sm sm:leading-6 focus:ring-2 focus:ring-inset placeholder:text-gray-400 focus:ring-primary-600"
-                      value="<?php echo esc_html ( get_option( 'atai_excluded_post_types' ) ); ?>"
+                      value="<?php echo esc_html ( ATAI_Utility::get_setting( 'atai_excluded_post_types' ) ); ?>"
                     >
                   </div>
                   <p class="mt-1 text-gray-500">
@@ -427,7 +459,7 @@
                       type="checkbox"
                       value="yes"
                       class="w-4 h-4 rounded border-gray-300 checked:bg-white text-primary-600 focus:ring-primary-600"
-                      <?php checked( 'yes', get_option( 'atai_skip_filenotfound' ) ); ?>
+                      <?php checked( 'yes', ATAI_Utility::get_setting( 'atai_skip_filenotfound' ) ); ?>
                     >
                   </div>
                   <div class="-mt-1 text-sm leading-6">
@@ -453,7 +485,7 @@
                       type="checkbox"
                       value="yes"
                       class="w-4 h-4 rounded border-gray-300 checked:bg-white text-primary-600 focus:ring-primary-600"
-                      <?php checked( 'yes', get_option( 'atai_keywords' ) ); ?>
+                      <?php checked( 'yes', ATAI_Utility::get_setting( 'atai_keywords' ) ); ?>
                     >
                   </div>
                   <div class="-mt-1 text-sm leading-6">
@@ -473,7 +505,7 @@
                       type="checkbox"
                       value="yes"
                       class="w-4 h-4 rounded border-gray-300 checked:bg-white text-primary-600 focus:ring-primary-600"
-                      <?php checked( 'yes', get_option( 'atai_keywords_title' ) ); ?>
+                      <?php checked( 'yes', ATAI_Utility::get_setting( 'atai_keywords_title' ) ); ?>
                     >
                   </div>
                   <div class="-mt-1 text-sm leading-6">
@@ -501,7 +533,7 @@
                       maxlength="512"
                       class="block py-1.5 w-full text-gray-900 rounded-md border-0 ring-1 ring-inset ring-gray-300 shadow-sm sm:text-sm sm:leading-6 focus:ring-2 focus:ring-inset placeholder:text-gray-400 focus:ring-primary-600"
                       placeholder="example: Rewrite the following text in the style of Shakespeare: {{AltText}}"
-                    ><?php echo esc_html ( get_option( 'atai_gpt_prompt' ) ); ?></textarea>
+                    ><?php echo esc_html ( ATAI_Utility::get_setting( 'atai_gpt_prompt' ) ); ?></textarea>
                   </div>
                   <p class="mt-1 text-gray-500">
                     <?php esc_html_e( 'Your prompt MUST include the macro {{AltText}}, which will be substituted with the generated alt text, then sent to ChatGPT.', 'alttext-ai' ); ?>
@@ -523,7 +555,7 @@
                       type="checkbox"
                       value="yes"
                       class="w-4 h-4 rounded border-gray-300 checked:bg-white text-primary-600 focus:ring-primary-600"
-                      <?php checked( 'yes', get_option( 'atai_bulk_refresh_overwrite' ) ); ?>
+                      <?php checked( 'yes', ATAI_Utility::get_setting( 'atai_bulk_refresh_overwrite' ) ); ?>
                     >
                   </div>
                   <div class="-mt-1 text-sm leading-6">
@@ -539,7 +571,7 @@
                       type="checkbox"
                       value="yes"
                       class="w-4 h-4 rounded border-gray-300 checked:bg-white text-primary-600 focus:ring-primary-600"
-                      <?php checked( 'yes', get_option( 'atai_bulk_refresh_external' ) ); ?>
+                      <?php checked( 'yes', ATAI_Utility::get_setting( 'atai_bulk_refresh_external' ) ); ?>
                     >
                   </div>
                   <div class="-mt-1 text-sm leading-6">
@@ -592,7 +624,7 @@
                       type="checkbox"
                       value="yes"
                       class="w-4 h-4 rounded border-gray-300 checked:bg-white text-primary-600 focus:ring-primary-600"
-                      <?php checked( 'yes', get_option( 'atai_ecomm' ) ); ?>
+                      <?php checked( 'yes', ATAI_Utility::get_setting( 'atai_ecomm' ) ); ?>
                     >
                   </div>
                   <div class="-mt-1 text-sm leading-6">
@@ -608,7 +640,7 @@
                       type="checkbox"
                       value="yes"
                       class="w-4 h-4 rounded border-gray-300 checked:bg-white text-primary-600 focus:ring-primary-600"
-                      <?php checked( 'yes', get_option( 'atai_ecomm_title' ) ); ?>
+                      <?php checked( 'yes', ATAI_Utility::get_setting( 'atai_ecomm_title' ) ); ?>
                     >
                   </div>
                   <div class="-mt-1 text-sm leading-6">
@@ -643,7 +675,7 @@
                       type="checkbox"
                       value="yes"
                       class="w-4 h-4 rounded border-gray-300 checked:bg-white text-primary-600 focus:ring-primary-600"
-                      <?php checked( 'yes', get_option( 'atai_public' ) ); ?>
+                      <?php checked( 'yes', ATAI_Utility::get_setting( 'atai_public' ) ); ?>
                     >
                   </div>
                   <div class="-mt-1 text-sm leading-6">
@@ -664,21 +696,21 @@
                       id="atai_admin_capability"
                       class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                     >
-                      <option value="manage_options" <?php selected( 'manage_options', get_option( 'atai_admin_capability', 'manage_options' ) ); ?>>
+                      <option value="manage_options" <?php selected( 'manage_options', ATAI_Utility::get_setting( 'atai_admin_capability', 'manage_options' ) ); ?>>
                         <?php esc_html_e( 'Administrators only (recommended)', 'alttext-ai' ); ?>
                       </option>
-                      <option value="edit_others_posts" <?php selected( 'edit_others_posts', get_option( 'atai_admin_capability', 'manage_options' ) ); ?>>
+                      <option value="edit_others_posts" <?php selected( 'edit_others_posts', ATAI_Utility::get_setting( 'atai_admin_capability', 'manage_options' ) ); ?>>
                         <?php esc_html_e( 'Editors and Administrators', 'alttext-ai' ); ?>
                       </option>
-                      <option value="publish_posts" <?php selected( 'publish_posts', get_option( 'atai_admin_capability', 'manage_options' ) ); ?>>
+                      <option value="publish_posts" <?php selected( 'publish_posts', ATAI_Utility::get_setting( 'atai_admin_capability', 'manage_options' ) ); ?>>
                         <?php esc_html_e( 'Authors, Editors and Administrators', 'alttext-ai' ); ?>
                       </option>
-                      <option value="read" <?php selected( 'read', get_option( 'atai_admin_capability', 'manage_options' ) ); ?>>
+                      <option value="read" <?php selected( 'read', ATAI_Utility::get_setting( 'atai_admin_capability', 'manage_options' ) ); ?>>
                         <?php esc_html_e( 'All logged-in users', 'alttext-ai' ); ?>
                       </option>
                     </select>
                     <p class="mt-1 text-sm text-gray-500">
-                      <?php esc_html_e( 'Control which user roles can access the AltText.ai menu.', 'alttext-ai' ); ?>
+                      <?php esc_html_e( 'Control which user roles can access the AltText.ai menu and save settings.', 'alttext-ai' ); ?>
                     </p>
                   </div>
                 </div>
@@ -690,7 +722,7 @@
                       type="checkbox"
                       value="yes"
                       class="w-4 h-4 rounded border-gray-300 checked:bg-white text-primary-600 focus:ring-primary-600"
-                      <?php checked( 'yes', get_option( 'atai_no_credit_warning' ) ); ?>
+                      <?php checked( 'yes', ATAI_Utility::get_setting( 'atai_no_credit_warning' ) ); ?>
                     >
                   </div>
                   <div class="-mt-1 text-sm leading-6">
@@ -705,7 +737,7 @@
                       type="checkbox"
                       value="yes"
                       class="w-4 h-4 rounded border-gray-300 checked:bg-white text-primary-600 focus:ring-primary-600"
-                      <?php checked( 'yes', get_option( 'atai_wp_generate_metadata' ) ); ?>
+                      <?php checked( 'yes', ATAI_Utility::get_setting( 'atai_wp_generate_metadata' ) ); ?>
                     >
                   </div>
                   <div class="-mt-1 text-sm leading-6">
@@ -757,7 +789,7 @@
                       id="atai_refresh_src_attr"
                       maxlength="128"
                       class="block py-1.5 w-full text-gray-900 rounded-md border-0 ring-1 ring-inset ring-gray-300 shadow-sm sm:text-sm sm:leading-6 focus:ring-2 focus:ring-inset placeholder:text-gray-400 focus:ring-primary-600"
-                      value="<?php echo esc_html ( get_option( 'atai_refresh_src_attr' ) ); ?>"
+                      value="<?php echo esc_html ( ATAI_Utility::get_setting( 'atai_refresh_src_attr' ) ); ?>"
                     >
                   </div>
                   <p class="mt-1 text-gray-500">
@@ -781,7 +813,7 @@
                     <?php echo wp_kses( ATAI_Utility::get_error_logs(), $wp_kses_args ); ?>
                   </div>
                   <a
-                    href="<?php echo esc_url( add_query_arg( 'atai_action', 'clear-error-logs' ) ); ?>"
+                    href="<?php echo esc_url( wp_nonce_url( add_query_arg( 'atai_action', 'clear-error-logs' ), 'atai_clear_error_logs' ) ); ?>"
                     class="atai-button blue mt-4 cursor-pointer appearance-none no-underline shadow-sm"
                   >
                     <?php esc_html_e( 'Clear Logs', 'alttext-ai' ); ?>
@@ -795,6 +827,23 @@
       </div>
     </div>
 
-    <input type="submit" name="submit" value="Save Changes" class="atai-button blue mt-4 cursor-pointer appearance-none no-underline shadow-sm">
+    <?php if ( ! $settings_network_controlled ) : ?>
+      <input type="submit" name="submit" value="Save Changes" class="atai-button blue mt-4 cursor-pointer appearance-none no-underline shadow-sm">
+    <?php endif; ?>
   </form>
 </div>
+
+<?php if ( $settings_network_controlled ) : ?>
+<script type="text/javascript">
+  // Disable all form fields when network-controlled
+  document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('.atai-network-controlled');
+    if (form) {
+      const inputs = form.querySelectorAll('input:not([type="hidden"]), select, textarea');
+      inputs.forEach(function(input) {
+        input.disabled = true;
+      });
+    }
+  });
+</script>
+<?php endif; ?>

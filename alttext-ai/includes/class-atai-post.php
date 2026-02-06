@@ -311,7 +311,7 @@ class ATAI_Post {
     $num_alttext_generated = 0;
     $no_credits = false;
     $updated_content = '';
-    $img_src_attr = get_option( 'atai_refresh_src_attr', 'src' );
+    $img_src_attr = ATAI_Utility::get_setting( 'atai_refresh_src_attr', 'src' );
 
     if ( version_compare( get_bloginfo( 'version' ), '6.2') >= 0 ) {
       $tags = new WP_HTML_Tag_Processor( $content );
@@ -573,8 +573,8 @@ class ATAI_Post {
 
     $total_images_found = 0;
     $num_alttext_generated = 0;
-    $overwrite = get_option( 'atai_bulk_refresh_overwrite' ) === 'yes';
-    $include_external = get_option( 'atai_bulk_refresh_external' ) === 'yes';
+    $overwrite = ATAI_Utility::get_setting( 'atai_bulk_refresh_overwrite' ) === 'yes';
+    $include_external = ATAI_Utility::get_setting( 'atai_bulk_refresh_external' ) === 'yes';
 
     foreach ( $items as $post_id ) {
       $response = $this->enrich_post_content( $post_id, $overwrite, $include_external );

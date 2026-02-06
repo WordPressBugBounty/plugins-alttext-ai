@@ -112,7 +112,7 @@ class ATAI_API {
    * @param string  $attachment_url  URL of the image to request alt text for.
    */
   public function create_image( $attachment_id, $attachment_url, $api_options, &$response_code ) {
-    if ( empty($attachment_id) || get_option( 'atai_public' ) === 'yes' ) {
+    if ( empty($attachment_id) || ATAI_Utility::get_setting( 'atai_public' ) === 'yes' ) {
       // If the site is public, get ALT by sending the image URL to the server
       $body = array(
         'webhook_url' => '',
@@ -126,35 +126,46 @@ class ATAI_API {
       
       // Validate file exists and is readable before attempting to read
       if ( ! $file_path || ! file_exists( $file_path ) || ! is_readable( $file_path ) ) {
-        error_log( "ATAI: File not accessible for attachment {$attachment_id}" );
-        return false;
+        // Fallback to URL for offloaded media (S3, Cloudinary, etc.)
+        if ( ! empty( $attachment_url ) ) {
+          error_log( "ATAI: File not accessible for attachment {$attachment_id}" ); // phpcs:ignore QITStandard.PHP.DebugCode.DebugFunctionFound -- Production error logging
+          $body = array(
+            'webhook_url' => '',
+            'image' => array(
+              'url' => $attachment_url
+            )
+          );
+        } else {
+          error_log( "ATAI: Attachment #{$attachment_id}: Local file not accessible and no URL available." ); // phpcs:ignore QITStandard.PHP.DebugCode.DebugFunctionFound -- Production error logging
+          return false;
+        }
+      } else {
+        // Use WordPress functions when possible, with error handling
+        $file_contents = @file_get_contents( $file_path );
+        if ( $file_contents === false ) {
+          error_log( "ATAI: Failed to read file for attachment {$attachment_id}" );
+          return false;
+        }
+
+        $encoded_content = @base64_encode( $file_contents );
+        if ( $encoded_content === false ) {
+          error_log( "ATAI: Failed to encode file for attachment {$attachment_id}" );
+          return false;
+        }
+
+        $body = array(
+          'image' => array(
+            'raw' => $encoded_content
+          )
+        );
+
+        // Clean up memory immediately after encoding
+        unset( $file_contents, $encoded_content );
       }
-      
-      // Use WordPress functions when possible, with error handling
-      $file_contents = @file_get_contents( $file_path );
-      if ( $file_contents === false ) {
-        error_log( "ATAI: Failed to read file for attachment {$attachment_id}" );
-        return false;
-      }
-      
-      $encoded_content = @base64_encode( $file_contents );
-      if ( $encoded_content === false ) {
-        error_log( "ATAI: Failed to encode file for attachment {$attachment_id}" );
-        return false;
-      }
-      
-      $body = array(
-        'image' => array(
-          'raw' => $encoded_content
-        )
-      );
-      
-      // Clean up memory immediately after encoding
-      unset( $file_contents, $encoded_content );
     }
 
     $body = array_merge( $body, $api_options );
-    $timeout_secs = intval(get_option( 'atai_timeout', 20 ));
+    $timeout_secs = intval(ATAI_Utility::get_setting( 'atai_timeout', 20 ));
     $response = wp_remote_post(
       $this->base_url . '/images',
       array(
@@ -172,7 +183,7 @@ class ATAI_API {
 
     if ( ! is_array( $response ) || is_wp_error( $response ) ) {
       if ( defined( 'ATAI_DEBUG' ) && ATAI_DEBUG ) {
-        error_log( print_r( $response, true ) );
+        error_log( print_r( $response, true ) ); // phpcs:ignore QITStandard.PHP.DebugCode.DebugFunctionFound -- Conditional debug logging
       }
 
       ATAI_Utility::log_error(
@@ -199,7 +210,7 @@ class ATAI_API {
 
       if ( $error_message === 'account has insufficient credits' ) {
         if ( defined( 'ATAI_DEBUG' ) && ATAI_DEBUG ) {
-          error_log( print_r( $response, true ) );
+          error_log( print_r( $response, true ) ); // phpcs:ignore QITStandard.PHP.DebugCode.DebugFunctionFound -- Conditional debug logging
         }
 
         ATAI_Utility::log_error(
@@ -212,7 +223,7 @@ class ATAI_API {
           )
         );
 
-        if ( get_option( 'atai_no_credit_warning' ) != 'yes' ) {
+        if ( ATAI_Utility::get_setting( 'atai_no_credit_warning' ) != 'yes' ) {
           set_transient( 'atai_insufficient_credits', TRUE, MONTH_IN_SECONDS );
         }
 
@@ -220,7 +231,7 @@ class ATAI_API {
       }
 
       // Check if error indicates URL access issues (when site is marked as public but URLs aren't accessible)
-      if ( get_option( 'atai_public' ) === 'yes' && 
+      if ( ATAI_Utility::get_setting( 'atai_public' ) === 'yes' && 
            ( strpos( strtolower( $error_message ), 'unable to access' ) !== false || 
              strpos( strtolower( $error_message ), 'url not accessible' ) !== false ||
              strpos( strtolower( $error_message ), 'cannot fetch' ) !== false ||
@@ -240,7 +251,7 @@ class ATAI_API {
         return 'url_access_error';
       }
 
-      error_log( print_r( $response, true ) );
+      error_log( print_r( $response, true ) ); // phpcs:ignore QITStandard.PHP.DebugCode.DebugFunctionFound -- Production error logging
 
       ATAI_Utility::log_error(
         sprintf(
@@ -253,9 +264,9 @@ class ATAI_API {
       );
 
       return false;
-    } elseif ( substr( $response_code, 0, 1 ) == '4' && get_option( 'atai_public' ) === 'yes' ) {
+    } elseif ( substr( $response_code, 0, 1 ) == '4' && ATAI_Utility::get_setting( 'atai_public' ) === 'yes' ) {
       // 4xx errors when site is marked as public likely indicate URL access issues
-      error_log( print_r( $response, true ) );
+      error_log( print_r( $response, true ) ); // phpcs:ignore QITStandard.PHP.DebugCode.DebugFunctionFound -- Production error logging
       
       // Extract error message if available
       $error_message = '';
@@ -285,7 +296,7 @@ class ATAI_API {
       
       return 'url_access_error';
     } elseif ( substr( $response_code, 0, 1 ) != '2' ) {
-      error_log( print_r( $response, true ) );
+      error_log( print_r( $response, true ) ); // phpcs:ignore QITStandard.PHP.DebugCode.DebugFunctionFound -- Production error logging
 
       ATAI_Utility::log_error(
         sprintf(

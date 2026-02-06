@@ -34,6 +34,16 @@
  */
 class ATAI_Attachment {
   /**
+   * Track attachment IDs that have been processed for alt text generation
+   * in the current request. Prevents duplicate API calls from race conditions
+   * between add_attachment/process_polylang_translations and on_translation_created.
+   *
+   * @since 1.10.17
+   * @var array
+   */
+  private static $processed_attachments = array();
+
+  /**
    * Normalize and validate a language code.
    *
    * Supports 3-tier fallback:
@@ -125,12 +135,12 @@ class ATAI_Attachment {
     // Normalize booleans that might arrive as strings/ints via filters
     $api_options['overwrite'] = ! empty( $api_options['overwrite'] ) ? true : false;
 
-    $gpt_prompt = get_option('atai_gpt_prompt');
+    $gpt_prompt = ATAI_Utility::get_setting('atai_gpt_prompt');
     if ( !empty($gpt_prompt) ) {
       $api_options['gpt_prompt'] = $gpt_prompt;
     }
 
-    $model_name = get_option('atai_model_name');
+    $model_name = ATAI_Utility::get_setting('atai_model_name');
     if ( !empty($model_name) ) {
       $api_options['model_name'] = $model_name;
     }
@@ -149,7 +159,7 @@ class ATAI_Attachment {
         } else {
             $api_options['keywords'] = $this->get_seo_keywords( $attachment_id );
         }
-        if ( ! count( $api_options['keywords'] ) && ( get_option( 'atai_keywords_title' ) === 'yes' ) ) {
+        if ( ! count( $api_options['keywords'] ) && ( ATAI_Utility::get_setting( 'atai_keywords_title' ) === 'yes' ) ) {
           $api_options['keyword_source'] = $this->post_title_seo_keywords( $attachment_id );
         }
       }
@@ -186,8 +196,8 @@ class ATAI_Attachment {
     );
 
     // Enforce force_lang setting if enabled (overrides filter and caller language)
-    if ( 'yes' === get_option( 'atai_force_lang' ) ) {
-      $forced_lang = get_option( 'atai_lang' );
+    if ( 'yes' === ATAI_Utility::get_setting( 'atai_force_lang' ) ) {
+      $forced_lang = ATAI_Utility::get_setting( 'atai_lang', ATAI_Utility::get_default_language() );
       if ( is_string( $forced_lang ) && '' !== trim( $forced_lang ) ) {
         $api_options['lang'] = $this->normalize_lang(
           $forced_lang,
@@ -249,8 +259,8 @@ class ATAI_Attachment {
     }
 
     $alt_text = $response['alt_text'];
-    $alt_prefix = get_option('atai_alt_prefix');
-    $alt_suffix = get_option('atai_alt_suffix');
+    $alt_prefix = ATAI_Utility::get_setting('atai_alt_prefix');
+    $alt_suffix = ATAI_Utility::get_setting('atai_alt_suffix');
 
     if ( ! empty( $alt_prefix ) ) {
       $alt_text = trim( $alt_prefix ) . ' ' . $alt_text;
@@ -264,15 +274,15 @@ class ATAI_Attachment {
     update_post_meta( $attachment_id, '_wp_attachment_image_alt', $alt_text );
 
     $post_value_updates = array();
-    if ( get_option( 'atai_update_title' ) === 'yes' ) {
+    if ( ATAI_Utility::get_setting( 'atai_update_title' ) === 'yes' ) {
       $post_value_updates['post_title'] = $alt_text;
     };
 
-    if ( get_option( 'atai_update_caption' ) === 'yes' ) {
+    if ( ATAI_Utility::get_setting( 'atai_update_caption' ) === 'yes' ) {
       $post_value_updates['post_excerpt'] = $alt_text;
     };
 
-    if ( get_option( 'atai_update_description' ) === 'yes' ) {
+    if ( ATAI_Utility::get_setting( 'atai_update_description' ) === 'yes' ) {
       $post_value_updates['post_content'] = $alt_text;
     };
 
@@ -297,7 +307,7 @@ class ATAI_Attachment {
    * @return boolean  True if should be excluded, false otherwise.
    */
   private function is_attachment_excluded_by_post_type( $attachment_id ) {
-    $excluded_post_types = get_option( 'atai_excluded_post_types' );
+    $excluded_post_types = ATAI_Utility::get_setting( 'atai_excluded_post_types' );
     
     if ( empty( $excluded_post_types ) ) {
       return false;
@@ -325,7 +335,7 @@ class ATAI_Attachment {
    *
    * @return boolean  True if eligible, false otherwise.
    */
-  public function is_attachment_eligible( $attachment_id, $context = 'generate' ) {
+  public function is_attachment_eligible( $attachment_id, $context = 'generate', $dry_run = false ) {
     // Bypass eligibility checks in test mode
     if ( defined( 'ATAI_TESTING' ) && ATAI_TESTING ) {
       return true;
@@ -364,7 +374,7 @@ class ATAI_Attachment {
 
     $file = ( is_array($meta) && array_key_exists('file', $meta) ) ? ($upload_info['basedir'] . '/' . $meta['file']) : get_attached_file( $attachment_id );
     if ( empty( $meta ) && file_exists( $file ) ) {
-      if ( ( get_option( 'atai_wp_generate_metadata' ) === 'no' ) ) {
+      if ( $dry_run || ( ATAI_Utility::get_setting( 'atai_wp_generate_metadata' ) === 'no' ) ) {
         $meta = array('width' => 100, 'height' => 100); // Default values assuming this is a valid image
       }
       else {
@@ -390,10 +400,40 @@ class ATAI_Attachment {
 
     // Check offloaded plugin metadata
     if (!$size) {
-      $offload_meta = get_post_meta($attachment_id, 'amazonS3_info', true) ?: get_post_meta($attachment_id, 'cloudinary_info', true);
-      if (isset($offload_meta['key'])) {
-        $external_url = wp_get_attachment_url($attachment_id);
-        $size = ATAI_Utility::get_attachment_size($external_url);
+      /**
+       * Filter to provide file size for custom offloaded media (e.g., custom S3 storage plugins).
+       *
+       * This filter allows third-party plugins to return the file size for attachments stored
+       * outside the standard WordPress Media Library system (such as custom S3 implementations,
+       * Cloudinary, or other CDN/storage solutions).
+       *
+       * Example usage:
+       * ```php
+       * add_filter( 'atai_attachment_size', function( $size, $attachment_id ) {
+       *     // Get file size from your custom storage system
+       *     $custom_meta = get_post_meta( $attachment_id, 'my_custom_storage_meta', true );
+       *     if ( ! empty( $custom_meta['file_size'] ) ) {
+       *         return (int) $custom_meta['file_size']; // Return size in bytes
+       *     }
+       *     return $size; // Return null to use default lookup
+       * }, 10, 2 );
+       * ```
+       *
+       * @since 1.10.19
+       *
+       * @param int|null $size          The file size in bytes, or null if not provided.
+       * @param int      $attachment_id The ID of the attachment.
+       * @return int|null The file size in bytes, or null to use default lookup.
+       */
+      $custom_attachment_size = apply_filters( 'atai_attachment_size', null, $attachment_id );
+      if ( $custom_attachment_size !== null ) {
+        $size = $custom_attachment_size;
+      } else {
+        // Fallback to known offload plugin metadata
+        $offload_meta = get_post_meta( $attachment_id, 'amazonS3_info', true ) ?: get_post_meta( $attachment_id, 'cloudinary_info', true );
+        if ( isset( $offload_meta['key'] ) ) {
+          $size = ATAI_Utility::get_attachment_size( $attachment_id );
+        }
       }
     }
 
@@ -413,7 +453,7 @@ class ATAI_Attachment {
     $is_svg = ($extension_lower === 'svg');
     $size_unavailable = ($size === null || $size === false);
 
-    $file_type_extensions = get_option( 'atai_type_extensions' );
+    $file_type_extensions = ATAI_Utility::get_setting( 'atai_type_extensions' );
     $attachment_edit_url = get_edit_post_link($attachment_id);
 
     // Logging reasons for ineligibility
@@ -452,7 +492,7 @@ class ATAI_Attachment {
 
     // SVGs often have metadata issues that prevent size detection, skip this check for them
     if (!$is_svg && $size_unavailable) {
-      if ($should_log && get_option('atai_skip_filenotfound') === 'yes') {
+      if ($should_log && ATAI_Utility::get_setting('atai_skip_filenotfound') === 'yes') {
         ATAI_Utility::log_error(
           sprintf(
             '<a href="%s" target="_blank">Image #%d</a>: %s %s',
@@ -512,11 +552,11 @@ class ATAI_Attachment {
    * @return Array ["ecomm" => ["product" => <title>]] or empty array if not found.
    */
   public function get_ecomm_data( $attachment_id, $product_id = null ) {
-    if ( ( get_option( 'atai_ecomm' ) === 'no' ) || ! ATAI_Utility::has_woocommerce() ) {
+    if ( ( ATAI_Utility::get_setting( 'atai_ecomm' ) === 'no' ) || ! ATAI_Utility::has_woocommerce() ) {
       return array();
     }
 
-    if ( get_option( 'atai_ecomm_title' ) === 'yes' ) {
+    if ( ATAI_Utility::get_setting( 'atai_ecomm_title' ) === 'yes' ) {
       $post = get_post( $attachment_id );
       if ( !empty( $post->post_title ) ) {
         return array( 'product' => $post->post_title );
@@ -600,7 +640,7 @@ SQL;
      * @return Array of keywords, or empty array if none.
      */
     public function get_seo_keywords( $attachment_id, $explicit_post_id = null ) {
-      if ( ( get_option( 'atai_keywords' ) === 'no' ) ) {
+      if ( ( ATAI_Utility::get_setting( 'atai_keywords' ) === 'no' ) ) {
         return array();
       }
 
@@ -1063,7 +1103,7 @@ SQL;
    *                     to avoid race conditions with WPML metadata initialization.
    */
   public function add_attachment( $attachment_id ) {
-    if ( get_option( 'atai_enabled' ) === 'no' ) {
+    if ( ATAI_Utility::get_setting( 'atai_enabled' ) === 'no' ) {
       return;
     }
 
@@ -1072,41 +1112,170 @@ SQL;
       return;
     }
 
+    // Generate alt text for primary attachment
     $this->generate_alt( $attachment_id );
 
-    // Generate alt text for WPML translated versions in their respective languages
+    // Process WPML translations if applicable
+    $this->process_wpml_translations( $attachment_id );
+
+    // Process Polylang translations if applicable
+    $this->process_polylang_translations( $attachment_id );
+  }
+
+  /**
+   * Process WPML translations for an attachment.
+   * Returns success/skipped counts and processed IDs for double-processing prevention.
+   *
+   * @since 1.11.0
+   */
+  private function process_wpml_translations( $attachment_id, $options = array() ) {
+    $results = array(
+      'success'       => 0,
+      'skipped'       => 0,
+      'processed_ids' => array(),
+    );
+
     if ( ! ATAI_Utility::has_wpml() ) {
-      return;
+      return $results;
     }
 
     $active_languages = apply_filters( 'wpml_active_languages', NULL );
-
-    // Guard against WPML returning null/false
     if ( empty( $active_languages ) || ! is_array( $active_languages ) ) {
-      return;
+      return $results;
     }
 
-    $language_codes = array_keys( $active_languages );
+    foreach ( array_keys( $active_languages ) as $lang ) {
+      $translated_id = apply_filters( 'wpml_object_id', $attachment_id, 'attachment', FALSE, $lang );
 
-    foreach ( $language_codes as $lang ) {
-      $translated_attachment_id = apply_filters( 'wpml_object_id', $attachment_id, 'attachment', FALSE, $lang );
-
-      // Ensure translated attachment exists, is different, is actually an attachment, and not trashed
-      if ( ! $translated_attachment_id || $translated_attachment_id === $attachment_id ) {
+      // Skip source and non-existent translations
+      if ( ! $translated_id || (int) $translated_id === (int) $attachment_id ) {
         continue;
       }
 
-      $translated_post_type = get_post_type( $translated_attachment_id );
-      $translated_post_status = get_post_status( $translated_attachment_id );
-
-      if ( 'attachment' !== $translated_post_type || 'trash' === $translated_post_status ) {
+      // Skip invalid or trashed
+      if ( get_post_type( $translated_id ) !== 'attachment' || get_post_status( $translated_id ) === 'trash' ) {
+        $results['skipped']++;
+        $results['processed_ids'][ $translated_id ] = 'skipped';
         continue;
       }
 
-      // Pass language explicitly to avoid timing issues with WPML metadata
-      // Note: force_lang setting is enforced inside generate_alt() if enabled
-      $this->generate_alt( $translated_attachment_id, null, array( 'lang' => $lang ) );
+      $response = $this->generate_alt( $translated_id, null, array_merge( $options, array( 'lang' => $lang ) ) );
+
+      if ( $this->is_generation_error( $response ) ) {
+        $results['skipped']++;
+        $results['processed_ids'][ $translated_id ] = 'error';
+      } else {
+        $results['success']++;
+        $results['processed_ids'][ $translated_id ] = 'success';
+      }
     }
+
+    return $results;
+  }
+
+  /**
+   * Process Polylang translations for an attachment.
+   * Returns success/skipped counts and processed IDs for double-processing prevention.
+   *
+   * @since 1.10.16
+   * @access private
+   *
+   * @param int   $attachment_id Source attachment ID.
+   * @param array $options       Base API options to merge (keywords, negative_keywords, etc.).
+   *
+   * @return array Results with 'success', 'skipped', 'processed_ids' keys.
+   */
+  private function process_polylang_translations( $attachment_id, $options = array() ) {
+    $results = array(
+      'success'       => 0,
+      'skipped'       => 0,
+      'processed_ids' => array(),
+    );
+
+    if ( ! ATAI_Utility::has_polylang() ) {
+      return $results;
+    }
+
+    // Get list of active language slugs
+    if ( ! function_exists( 'pll_languages_list' ) || ! function_exists( 'pll_get_post' ) ) {
+      return $results;
+    }
+
+    $active_languages = pll_languages_list();
+    if ( empty( $active_languages ) || ! is_array( $active_languages ) ) {
+      return $results;
+    }
+
+    // Get source attachment's language to skip it
+    $source_lang = function_exists( 'pll_get_post_language' )
+      ? pll_get_post_language( $attachment_id )
+      : null;
+
+    foreach ( $active_languages as $lang ) {
+      // Skip source language
+      if ( $lang === $source_lang ) {
+        continue;
+      }
+
+      // Get translated attachment ID
+      $translated_id = pll_get_post( $attachment_id, $lang );
+
+      // Skip non-existent translations
+      if ( ! $translated_id || (int) $translated_id === (int) $attachment_id ) {
+        continue;
+      }
+
+      // Skip invalid or trashed
+      if ( get_post_type( $translated_id ) !== 'attachment' || get_post_status( $translated_id ) === 'trash' ) {
+        $results['skipped']++;
+        $results['processed_ids'][ $translated_id ] = 'skipped';
+        continue;
+      }
+
+      // Skip if already processed in this request (prevents double API calls)
+      if ( isset( self::$processed_attachments[ $translated_id ] ) ) {
+        $results['skipped']++;
+        $results['processed_ids'][ $translated_id ] = 'already_processed';
+        continue;
+      }
+
+      // Mark as processed before API call to prevent race conditions
+      self::$processed_attachments[ $translated_id ] = true;
+
+      // Normalize language code (Polylang may use uppercase or variants)
+      $normalized_lang = strtolower( (string) $lang );
+
+      $response = $this->generate_alt( $translated_id, null, array_merge( $options, array( 'lang' => $normalized_lang ) ) );
+
+      if ( $this->is_generation_error( $response ) ) {
+        $results['skipped']++;
+        $results['processed_ids'][ $translated_id ] = 'error';
+      } else {
+        $results['success']++;
+        $results['processed_ids'][ $translated_id ] = 'success';
+      }
+    }
+
+    return $results;
+  }
+
+  /**
+   * Check if a generate_alt response is an error.
+   *
+   * @since 1.11.0
+   */
+  private function is_generation_error( $response ) {
+    if ( is_wp_error( $response ) ) {
+      return true;
+    }
+    if ( ! is_string( $response ) || $response === '' ) {
+      return true;
+    }
+    return (
+      0 === strpos( $response, 'error_' ) ||
+      0 === strpos( $response, 'invalid_' ) ||
+      in_array( $response, array( 'insufficient_credits', 'url_access_error' ), true )
+    );
   }
 
 
@@ -1155,6 +1324,8 @@ SQL;
     $batch_id = sanitize_text_field( $_REQUEST['batchId'] ?? '0' );
     $images_successful = $images_skipped = $loop_count = 0;
     $processed_ids = array(); // Track processed IDs for bulk-select cleanup
+    $wpml_processed_ids = array(); // Track WPML translation IDs to prevent double-processing
+    $polylang_processed_ids = array(); // Track Polylang translation IDs to prevent double-processing
     
     
     // Get accumulated skip reasons from previous batches
@@ -1209,7 +1380,7 @@ SQL;
       }
 
       // Exclude images attached to specific post types
-      $excluded_post_types = get_option( 'atai_excluded_post_types' );
+      $excluded_post_types = ATAI_Utility::get_setting( 'atai_excluded_post_types' );
       if ( ! empty( $excluded_post_types ) ) {
         $post_types = array_map( 'trim', explode( ',', $excluded_post_types ) );
         $post_types_placeholders = implode( ',', array_fill( 0, count( $post_types ), '%s' ) );
@@ -1293,12 +1464,44 @@ SQL;
 
 
     foreach ( $images_to_update as $image ) {
-      $attachment_id = ( $mode === 'bulk-select' ) ? $image : $image->post_id;
-      
+      $attachment_id = absint( ( $mode === 'bulk-select' ) ? $image : $image->post_id );
+
       if ( defined( 'ATAI_BULK_DEBUG' ) ) {
         ATAI_Utility::log_error( sprintf("BulkGenerate: Attachment ID %d", $attachment_id) );
       }
-      
+
+      // Skip if already processed as WPML translation (prevents double-processing)
+      if ( in_array( $attachment_id, $wpml_processed_ids, true ) ) {
+        // Don't increment images_skipped to avoid double-counting in stats
+        $skip_reasons['wpml_already_processed'] = ($skip_reasons['wpml_already_processed'] ?? 0) + 1;
+        $last_post_id = $attachment_id;
+
+        if ( $mode === 'bulk-select' ) {
+          $processed_ids[] = $attachment_id;
+        }
+
+        if ( ++$loop_count >= $query_limit ) {
+          break;
+        }
+        continue;
+      }
+
+      // Skip if already processed as Polylang translation (prevents double-processing)
+      if ( in_array( $attachment_id, $polylang_processed_ids, true ) ) {
+        // Don't increment images_skipped to avoid double-counting in stats
+        $skip_reasons['polylang_already_processed'] = ($skip_reasons['polylang_already_processed'] ?? 0) + 1;
+        $last_post_id = $attachment_id;
+
+        if ( $mode === 'bulk-select' ) {
+          $processed_ids[] = $attachment_id;
+        }
+
+        if ( ++$loop_count >= $query_limit ) {
+          break;
+        }
+        continue;
+      }
+
       // Skip if attachment is not eligible
       if ( ! $this->is_attachment_eligible( $attachment_id, 'bulk' ) ) {
         $images_skipped++;
@@ -1368,6 +1571,30 @@ SQL;
 
       if ( is_string( $response ) && $response !== '' && ! $is_error_code ) {
         $images_successful++;
+
+        // Process WPML translations for successfully generated primary images
+        // Note: Translation stats are NOT added to main counters to keep success_count
+        // aligned with process_count (primary attachments only)
+        $wpml_results = $this->process_wpml_translations( $attachment_id, array(
+          'keywords'          => $keywords,
+          'negative_keywords' => $negative_keywords,
+        ) );
+
+        // Track all WPML translation IDs to prevent double-processing later in the loop
+        if ( ! empty( $wpml_results['processed_ids'] ) ) {
+          $wpml_processed_ids = array_merge( $wpml_processed_ids, array_keys( $wpml_results['processed_ids'] ) );
+        }
+
+        // Process Polylang translations for successfully generated primary images
+        $polylang_results = $this->process_polylang_translations( $attachment_id, array(
+          'keywords'          => $keywords,
+          'negative_keywords' => $negative_keywords,
+        ) );
+
+        // Track all Polylang translation IDs to prevent double-processing later in the loop
+        if ( ! empty( $polylang_results['processed_ids'] ) ) {
+          $polylang_processed_ids = array_merge( $polylang_processed_ids, array_keys( $polylang_results['processed_ids'] ) );
+        }
       } else {
         // API call failed - track the reason
         $images_skipped++;
@@ -1454,11 +1681,41 @@ SQL;
       return;
     }
 
+    // Check user has permission to manage attachments
+    if ( ! current_user_can( 'upload_files' ) ) {
+      wp_die( esc_html__( 'You do not have permission to manage attachments.', 'alttext-ai' ) );
+    }
+
+    // Check user can edit this specific attachment
+    if ( ! current_user_can( 'edit_post', $attachment_id ) ) {
+      wp_die( esc_html__( 'You do not have permission to edit this attachment.', 'alttext-ai' ) );
+    }
+
+    // Verify CSRF nonce
+    if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'atai_url_generate' ) ) {
+      wp_die(
+        esc_html__( 'Security verification failed. Please refresh the page and try again.', 'alttext-ai' ),
+        esc_html__( 'AltText.ai', 'alttext-ai' ),
+        array( 'back_link' => true )
+      );
+    }
+
     // Generate ALT text
     $this->generate_alt( $attachment_id );
 
+    // Process WPML translations
+    $this->process_wpml_translations( $attachment_id );
+
+    // Process Polylang translations
+    $this->process_polylang_translations( $attachment_id );
+
     // Redirect back to edit page
-    wp_safe_redirect( wp_get_referer() );
+    $redirect_url = wp_get_referer();
+    if ( ! $redirect_url ) {
+      $redirect_url = admin_url( 'upload.php' );
+    }
+    wp_safe_redirect( $redirect_url );
+    exit;
   }
 
   /**
@@ -1469,7 +1726,7 @@ SQL;
    */
   public function ajax_single_generate() {
     check_ajax_referer( 'atai_single_generate', 'security' );
-    
+
     // Check permissions
     $this->check_attachment_permissions();
 
@@ -1479,7 +1736,15 @@ SQL;
     }
 
     $attachment_id = absint( $_REQUEST['attachment_id'] );
-    $keywords = is_array($_REQUEST['keywords']) ? array_map('sanitize_text_field', $_REQUEST['keywords']) : [];
+
+    // Check user can edit this specific attachment
+    if ( ! current_user_can( 'edit_post', $attachment_id ) ) {
+      wp_send_json( array(
+        'status' => 'error',
+        'message' => __( 'You do not have permission to edit this attachment.', 'alttext-ai' )
+      ) );
+    }
+    $keywords = is_array($_REQUEST['keywords'] ?? null) ? array_map('sanitize_text_field', $_REQUEST['keywords']) : [];
 
     // Generate ALT text
     $response = $this->generate_alt( $attachment_id, null, array( 'keywords' => $keywords ) );
@@ -1500,9 +1765,21 @@ SQL;
     }
 
     if ( ! is_array( $response ) && $response !== false ) {
+      // Process WPML translations for successfully generated primary image
+      $wpml_results = $this->process_wpml_translations( $attachment_id, array(
+        'keywords' => $keywords,
+      ) );
+
+      // Process Polylang translations for successfully generated primary image
+      $polylang_results = $this->process_polylang_translations( $attachment_id, array(
+        'keywords' => $keywords,
+      ) );
+
       wp_send_json( array(
-        'status' => 'success',
-        'alt_text' => $response,
+        'status'           => 'success',
+        'alt_text'         => $response,
+        'wpml_success'     => $wpml_results['success'],
+        'polylang_success' => $polylang_results['success'],
       ) );
     }
 
@@ -1519,7 +1796,7 @@ SQL;
    */
   public function ajax_edit_history() {
     check_ajax_referer( 'atai_edit_history', 'security' );
-    
+
     // Check permissions
     $this->check_attachment_permissions();
 
@@ -1530,6 +1807,14 @@ SQL;
       wp_send_json( array(
         'status' => 'error',
         'message' => __( 'Invalid request.', 'alttext-ai' )
+      ) );
+    }
+
+    // Check user can edit this specific attachment
+    if ( ! current_user_can( 'edit_post', $attachment_id ) ) {
+      wp_send_json( array(
+        'status' => 'error',
+        'message' => __( 'You do not have permission to edit this attachment.', 'alttext-ai' )
       ) );
     }
 
@@ -1699,9 +1984,18 @@ SQL;
 
     // Generate alt text for the translation with explicit language
     // Pass language explicitly to avoid timing issues with Polylang metadata
-    if ( get_option( 'atai_enabled' ) === 'no' || ! $this->is_attachment_eligible( $tr_id, 'add' ) ) {
+    if ( ATAI_Utility::get_setting( 'atai_enabled' ) === 'no' || ! $this->is_attachment_eligible( $tr_id, 'add' ) ) {
       return;
     }
+
+    // Skip if already processed in this request (prevents double API calls
+    // when both add_attachment and pll_translate_media fire for same translation)
+    if ( isset( self::$processed_attachments[ $tr_id ] ) ) {
+      return;
+    }
+
+    // Mark as processed before API call to prevent race conditions
+    self::$processed_attachments[ $tr_id ] = true;
 
     // Normalize language code (Polylang may pass uppercase or region variants)
     $lang_slug = strtolower( (string) $lang_slug );
@@ -1725,6 +2019,14 @@ SQL;
    *               Returns 'error' status and an error message if any issue occurs.
    */
   public function process_csv() {
+    // Verify nonce for security
+    if ( ! isset( $_POST['atai_csv_import_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['atai_csv_import_nonce'] ) ), 'atai_csv_import' ) ) {
+      return array(
+        'status' => 'error',
+        'message' => __( 'Security check failed. Please refresh the page and try again.', 'alttext-ai' )
+      );
+    }
+
     $uploaded_file = $_FILES['csv'] ?? []; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
     $moved_file = wp_handle_upload( $uploaded_file, array( 'test_form' => false ) );
 
@@ -1759,17 +2061,51 @@ SQL;
       );
     }
 
+    // Handle language selection from POST data
+    $selected_lang = isset( $_POST['csv_language'] ) ? sanitize_text_field( wp_unslash( $_POST['csv_language'] ) ) : '';
+    $lang_column_index = $alt_text_index; // Default to alt_text column
+
+    if ( empty( $selected_lang ) ) {
+      // Clear stored preference when Default is selected
+      delete_option( 'atai_csv_import_lang' );
+    } else {
+      // Look for the language-specific column (case-insensitive search)
+      $lang_column_name = 'alt_text_' . $selected_lang;
+      $lang_index = false;
+
+      foreach ( $header as $index => $column ) {
+        if ( strcasecmp( $column, $lang_column_name ) === 0 ) {
+          $lang_index = $index;
+          break;
+        }
+      }
+
+      if ( $lang_index !== false ) {
+        $lang_column_index = $lang_index;
+
+        // Save user preference for next import
+        update_option( 'atai_csv_import_lang', $selected_lang );
+      }
+    }
+
     // Loop through the rest of the rows and use the captured indexes to get the values
     while ( ( $data = fgetcsv( $handle, 1000, ',', '"' ) ) !== FALSE ) {
       global $wpdb;
 
-      $asset_id = $data[$asset_id_index];
-      $alt_text = $data[$alt_text_index];
+      $asset_id = $data[ $asset_id_index ];
+
+      // Use language-specific column if selected, with fallback to default alt_text
+      $alt_text = isset( $data[ $lang_column_index ] ) ? $data[ $lang_column_index ] : '';
+
+      // Fallback to default alt_text if language column is empty
+      if ( empty( $alt_text ) && $lang_column_index !== $alt_text_index ) {
+        $alt_text = isset( $data[ $alt_text_index ] ) ? $data[ $alt_text_index ] : '';
+      }
 
       // Get the attachment ID from the asset ID
       $attachment_id = ATAI_Utility::find_atai_asset($asset_id);
 
-      if ( ! $attachment_id && $image_url_index !== false ) {
+      if ( ! $attachment_id && $image_url_index !== false && isset( $data[$image_url_index] ) ) {
         // If we don't have the attachment ID, try to get it from the URL
         $image_url = $data[$image_url_index];
         $attachment_id = attachment_url_to_postid( $image_url );
@@ -1796,15 +2132,15 @@ SQL;
       // Update the post title, caption, and description if the corresponding option is enabled
       $post_value_updates = array();
 
-      if ( get_option( 'atai_update_title' ) === 'yes' ) {
+      if ( ATAI_Utility::get_setting( 'atai_update_title' ) === 'yes' ) {
         $post_value_updates['post_title'] = $alt_text;
       };
 
-      if ( get_option( 'atai_update_caption' ) === 'yes' ) {
+      if ( ATAI_Utility::get_setting( 'atai_update_caption' ) === 'yes' ) {
         $post_value_updates['post_excerpt'] = $alt_text;
       };
 
-      if ( get_option( 'atai_update_description' ) === 'yes' ) {
+      if ( ATAI_Utility::get_setting( 'atai_update_description' ) === 'yes' ) {
         $post_value_updates['post_content'] = $alt_text;
       };
 
@@ -1835,6 +2171,118 @@ SQL;
       'status' => 'success',
       'message' => $message
     );
+  }
+
+  /**
+   * Preview CSV file to detect available languages via AJAX.
+   *
+   * @since 1.10.16
+   * @access public
+   */
+  public function ajax_preview_csv() {
+    check_ajax_referer( 'atai_preview_csv', 'security' );
+
+    // Check permissions
+    if ( ! current_user_can( 'upload_files' ) ) {
+      wp_send_json( array(
+        'status'  => 'error',
+        'message' => __( 'You do not have permission to upload files.', 'alttext-ai' ),
+      ) );
+    }
+
+    // Handle the file upload
+    $uploaded_file = $_FILES['csv'] ?? array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+
+    if ( empty( $uploaded_file['tmp_name'] ) ) {
+      wp_send_json( array(
+        'status'  => 'error',
+        'message' => __( 'No file uploaded.', 'alttext-ai' ),
+      ) );
+    }
+
+    // Validate file type
+    $file_type = wp_check_filetype( $uploaded_file['name'] );
+    if ( strtolower( $file_type['ext'] ?? '' ) !== 'csv' ) {
+      wp_send_json( array(
+        'status'  => 'error',
+        'message' => __( 'Please upload a CSV file.', 'alttext-ai' ),
+      ) );
+    }
+
+    // Detect languages from the uploaded file
+    $languages = $this->detect_csv_languages( $uploaded_file['tmp_name'] );
+
+    // Get user's preferred language (if previously set)
+    $preferred_lang = get_option( 'atai_csv_import_lang', '' );
+
+    wp_send_json( array(
+      'status'         => 'success',
+      'languages'      => $languages,
+      'preferred_lang' => $preferred_lang,
+      'has_default'    => true, // alt_text column always available
+    ) );
+  }
+
+  /**
+   * Detect available language columns in a CSV file.
+   *
+   * Parses the CSV header to find columns matching the pattern 'alt_text_*'
+   * and returns an array of language codes with their display names.
+   *
+   * @since 1.10.16
+   * @access public
+   *
+   * @param string $file_path Path to the CSV file.
+   *
+   * @return array Associative array of [lang_code => display_name] for detected languages.
+   */
+  public function detect_csv_languages( $file_path ) {
+    $languages = array();
+
+    if ( ! file_exists( $file_path ) ) {
+      return $languages;
+    }
+
+    $handle = fopen( $file_path, 'r' );
+    if ( ! $handle ) {
+      return $languages;
+    }
+
+    $header = fgetcsv( $handle, ATAI_CSV_LINE_LENGTH, ',', '"' );
+    fclose( $handle );
+
+    if ( ! $header ) {
+      return $languages;
+    }
+
+    $supported = ATAI_Utility::supported_languages();
+
+    foreach ( $header as $column ) {
+      // Match alt_text_XX or alt_text_XX-YY patterns (case-insensitive)
+      if ( preg_match( '/^alt_text_([a-z]{2,3}(?:-[a-zA-Z]{2,4})?)$/i', $column, $matches ) ) {
+        $lang_code = $matches[1];
+
+        // Check if language is in our supported list (case-insensitive lookup)
+        $lang_code_lower = strtolower( $lang_code );
+        $matched_key = null;
+
+        foreach ( $supported as $key => $name ) {
+          if ( strtolower( $key ) === $lang_code_lower ) {
+            $matched_key = $key;
+            break;
+          }
+        }
+
+        if ( $matched_key !== null ) {
+          $languages[ $matched_key ] = $supported[ $matched_key ];
+        } else {
+          // Include unknown languages with code as display name
+          $languages[ $lang_code_lower ] = strtoupper( $lang_code );
+        }
+      }
+    }
+
+    return $languages;
   }
 
   /**

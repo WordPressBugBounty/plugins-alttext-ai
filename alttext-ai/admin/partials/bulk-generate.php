@@ -97,7 +97,7 @@ SQL;
     }
 
     // Exclude images attached to specific post types
-    $excluded_post_types = get_option( 'atai_excluded_post_types' );
+    $excluded_post_types = ATAI_Utility::get_setting( 'atai_excluded_post_types' );
     if ( ! empty( $excluded_post_types ) ) {
       $post_types = array_map( 'trim', explode( ',', $excluded_post_types ) );
       $post_types_placeholders = implode( ',', array_fill( 0, count( $post_types ), '%s' ) );

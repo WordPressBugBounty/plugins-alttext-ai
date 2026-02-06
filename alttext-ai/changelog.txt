@@ -1,5 +1,25 @@
 *** AltText.ai Changelog ***
 
+2026-02-04 - version 1.10.20
+* NEW: Better support for custom media storage plugins (S3, Cloudinary, etc.)
+* Fixed: Occasionally, language dropdown could default to a language other than your WordPress site language
+
+2026-01-30 - version 1.10.18
+* NEW: WP-CLI commands for developers — automate alt text generation from the command line with `wp alttext generate` and `wp alttext status`
+* NEW: Full WordPress Multisite support — share one API key across your entire network and manage settings centrally
+* NEW: Multilingual CSV import — upload alt text for thousands of images in multiple languages at once
+* NEW: Polylang users now get automatic translations, matching the seamless WPML experience
+* Improved: Stronger security controls for multisite network administrators
+* Fixed: Bulk generation progress now displays correctly
+
+2025-11-25 - version 1.10.15
+* Improved: WPML translations now process automatically when generating alt text for primary images
+* Improved: Bulk generation prevents double-processing of WPML translated images
+* Improved: Better error handling and tracking for multilingual alt text generation
+
+2025-10-06 - version 1.10.13
+* Fixed: Non-administrator users can now save settings when given permission to access the plugin
+
 2025-10-02 - version 1.10.12
 * Improved: Better language detection for multilingual sites using WPML and Polylang
 * Improved: More reliable alt text generation with automatic retry on temporary errors

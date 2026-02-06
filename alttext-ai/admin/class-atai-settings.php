@@ -82,7 +82,7 @@ class ATAI_Settings {
 	 * @access   public
    */
 	public function register_settings_pages() {
-    $capability = get_option( 'atai_admin_capability', 'manage_options' );
+    $capability = ATAI_Utility::get_setting( 'atai_admin_capability', 'manage_options' );
     // Main page
 		add_menu_page(
 			__( 'AltText.ai WordPress Settings', 'alttext-ai' ),
@@ -147,6 +147,42 @@ class ATAI_Settings {
 	}
 
   /**
+   * Register the network settings page.
+   *
+   * @since    1.10.16
+   * @access   public
+   */
+  public function register_network_settings_page() {
+    if ( ! is_multisite() ) {
+      return;
+    }
+
+    $hook_suffix = add_submenu_page(
+      'settings.php', // Parent slug (network admin settings)
+      __( 'AltText.ai Network Settings', 'alttext-ai' ),
+      __( 'AltText.ai', 'alttext-ai' ),
+      'manage_network_options',
+      'atai-network',
+      array( $this, 'render_network_settings_page' )
+    );
+
+    // Enqueue styles for the network settings page
+    add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_network_styles' ) );
+  }
+
+  /**
+   * Enqueue styles for the network settings page.
+   *
+   * @since    1.10.16
+   */
+  public function enqueue_network_styles( $hook ) {
+    // Debug the current hook to see what it is
+    if ( strpos( $hook, 'atai-network' ) !== false ) {
+      wp_enqueue_style( 'atai-admin', plugin_dir_url( __FILE__ ) . 'css/admin.css', array(), $this->version, 'all' );
+    }
+  }
+
+  /**
    * Render the settings page.
    *
    * @since    1.0.0
@@ -159,6 +195,16 @@ class ATAI_Settings {
 
     $this->load_account();
     require_once plugin_dir_path( dirname( __FILE__ ) ) . 'admin/partials/settings.php';
+  }
+
+  /**
+   * Render the network settings page.
+   *
+   * @since    1.10.16
+   * @access   public
+   */
+  public function render_network_settings_page() {
+    require_once plugin_dir_path( dirname( __FILE__ ) ) . 'admin/partials/network-settings.php';
   }
 
   /**
@@ -195,6 +241,18 @@ class ATAI_Settings {
   }
 
   /**
+   * Filter the capability required to save settings.
+   *
+   * @since    1.10.13
+   * @access   public
+   * @param    string    $capability    The default capability (manage_options).
+   * @return   string    The configured capability.
+   */
+  public function filter_settings_capability( $capability ) {
+    return ATAI_Utility::get_setting( 'atai_admin_capability', 'manage_options' );
+  }
+
+  /**
    * Register setting group.
    *
    * @since    1.0.0
@@ -208,6 +266,27 @@ class ATAI_Settings {
         'default'           => '',
       )
 		);
+
+    // Network API key option (multisite only)
+    if ( is_multisite() && is_super_admin() ) {
+      register_setting(
+        'atai-settings',
+        'atai_network_api_key',
+        array(
+          'sanitize_callback' => array( $this, 'sanitize_yes_no_checkbox' ),
+          'default'           => 'no',
+        )
+      );
+      
+      register_setting(
+        'atai-settings',
+        'atai_network_all_settings',
+        array(
+          'sanitize_callback' => array( $this, 'sanitize_yes_no_checkbox' ),
+          'default'           => 'no',
+        )
+      );
+    }
 
     register_setting(
 			'atai-settings',
@@ -567,6 +646,11 @@ class ATAI_Settings {
 
     if ( $delete ) {
       delete_option( 'atai_api_key' );
+      
+      // If this is a multisite and we're a network admin, also update the network setting
+      if ( is_multisite() && is_super_admin() ) {
+        update_site_option( 'atai_network_api_key', 'no' );
+      }
     }
 
     if ( empty( $api_key ) ) {
@@ -584,12 +668,153 @@ class ATAI_Settings {
       return false;
     }
 
+    // Check if the network API key option is set and save it
+    if ( is_multisite() && is_super_admin() ) {
+      if ( isset( $_POST['atai_network_api_key'] ) ) {
+        $network_api_key = $_POST['atai_network_api_key'] === 'yes' ? 'yes' : 'no';
+        update_site_option( 'atai_network_api_key', $network_api_key );
+      }
+      
+      if ( isset( $_POST['atai_network_all_settings'] ) ) {
+        $network_all_settings = $_POST['atai_network_all_settings'] === 'yes' ? 'yes' : 'no';
+        update_site_option( 'atai_network_all_settings', $network_all_settings );
+        
+        // If enabled, sync all settings to network option for later use by subsites
+        if ( $network_all_settings === 'yes' ) {
+          $this->sync_settings_to_network();
+        }
+      }
+    }
+
     // Add custom success message
     $message = __( 'API Key saved. Pro tip: Add alt text to all your existing images with our <a href="%s" class="font-medium text-primary-600 hover:text-primary-500">Bulk Generate</a> feature!', 'alttext-ai' );
     $message = sprintf( $message, admin_url( 'admin.php?page=atai-bulk-generate' ) );
     add_settings_error( 'atai_api_key_updated', '', $message, 'updated' );
 
     return $api_key;
+  }
+
+  /**
+   * Sync settings from the main site to the network.
+   *
+   * Uses explicit defaults to avoid propagating unset options as false,
+   * which could lock users out or change behavior unexpectedly on subsites.
+   *
+   * @since    1.10.16
+   * @access   private
+   */
+  private function sync_settings_to_network() {
+    if ( ! is_multisite() || ! is_main_site() ) {
+      return;
+    }
+
+    // Settings with their defaults - prevents false from being stored for unset options
+    $settings_with_defaults = array(
+      'atai_api_key'              => '',
+      'atai_lang'                 => 'en',
+      'atai_model_name'           => '',
+      'atai_force_lang'           => 'no',
+      'atai_update_title'         => 'no',
+      'atai_update_caption'       => 'no',
+      'atai_update_description'   => 'no',
+      'atai_enabled'              => 'yes',
+      'atai_skip_filenotfound'    => 'no',
+      'atai_keywords'             => 'yes',
+      'atai_keywords_title'       => 'no',
+      'atai_ecomm'                => 'yes',
+      'atai_ecomm_title'          => 'no',
+      'atai_alt_prefix'           => '',
+      'atai_alt_suffix'           => '',
+      'atai_gpt_prompt'           => '',
+      'atai_type_extensions'      => '',
+      'atai_excluded_post_types'  => '',
+      'atai_bulk_refresh_overwrite' => 'no',
+      'atai_bulk_refresh_external'  => 'no',
+      'atai_refresh_src_attr'     => 'src',
+      'atai_wp_generate_metadata' => 'no',
+      'atai_timeout'              => '20',
+      'atai_public'               => 'no',
+      'atai_no_credit_warning'    => 'no',
+      'atai_admin_capability'     => 'manage_options',
+    );
+
+    // Create a network_settings array with values from the main site (with defaults)
+    $network_settings = array();
+    foreach ( $settings_with_defaults as $option_name => $default ) {
+      $network_settings[ $option_name ] = get_option( $option_name, $default );
+    }
+
+    // Save all settings to the network options
+    update_site_option( 'atai_network_settings', $network_settings );
+  }
+
+  /**
+   * Refresh network settings cache when a setting is updated.
+   *
+   * This ensures subsites get fresh values when the main site changes settings.
+   *
+   * @since    1.10.16
+   * @access   public
+   * @param    string    $option    The option name that was updated.
+   */
+  public function maybe_refresh_network_settings( $option ) {
+    // Only process our plugin's options (all start with 'atai_')
+    if ( strpos( $option, 'atai_' ) !== 0 ) {
+      return;
+    }
+
+    // Only refresh if we're on the main site, multisite is enabled, and network settings are active
+    if ( ! is_multisite() || ! is_main_site() ) {
+      return;
+    }
+
+    $network_all_settings = get_site_option( 'atai_network_all_settings' );
+    if ( $network_all_settings === 'yes' ) {
+      $this->sync_settings_to_network();
+    }
+  }
+
+  /**
+   * Handle network settings update.
+   *
+   * @since    1.10.16
+   * @access   public
+   */
+  public function handle_network_settings_update() {
+    if ( ! is_multisite() || ! is_network_admin() ) {
+      return;
+    }
+
+    // Verify user has permission to manage network options
+    if ( ! current_user_can( 'manage_network_options' ) ) {
+      wp_die( esc_html__( 'You do not have permission to manage network settings.', 'alttext-ai' ) );
+    }
+
+    // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonces should not be sanitized before verification
+    if ( ! isset( $_POST['atai_network_settings_nonce'] ) || ! wp_verify_nonce( $_POST['atai_network_settings_nonce'], 'atai_network_settings_nonce' ) ) {
+      wp_die( esc_html__( 'Security check failed.', 'alttext-ai' ) );
+    }
+
+    // Update network API key setting
+    $network_api_key = isset( $_POST['atai_network_api_key'] ) ? 'yes' : 'no';
+    update_site_option( 'atai_network_api_key', $network_api_key );
+
+    // Update network all settings option
+    $network_all_settings = isset( $_POST['atai_network_all_settings'] ) ? 'yes' : 'no';
+    update_site_option( 'atai_network_all_settings', $network_all_settings );
+    
+    // Update network hide credits option
+    $network_hide_credits = isset( $_POST['atai_network_hide_credits'] ) ? 'yes' : 'no';
+    update_site_option( 'atai_network_hide_credits', $network_hide_credits );
+
+    // Sync settings from main site to network options if enabled
+    if ( $network_all_settings === 'yes' || $network_api_key === 'yes' ) {
+      $this->sync_settings_to_network();
+    }
+
+    // Redirect back to the network settings page with a success message
+    wp_safe_redirect( add_query_arg( 'updated', 'true', network_admin_url( 'settings.php?page=atai-network' ) ) );
+    exit;
   }
 
   /**
@@ -607,8 +832,24 @@ class ATAI_Settings {
       return;
     }
 
+    // Check user has permission
+    $required_capability = ATAI_Utility::get_setting( 'atai_admin_capability', 'manage_options' );
+    if ( ! current_user_can( $required_capability ) ) {
+      wp_die( esc_html__( 'You do not have permission to perform this action.', 'alttext-ai' ) );
+    }
+
+    // Verify CSRF nonce
+    if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'atai_clear_error_logs' ) ) {
+      wp_die(
+        esc_html__( 'Security verification failed. Please refresh the page and try again.', 'alttext-ai' ),
+        esc_html__( 'AltText.ai', 'alttext-ai' ),
+        array( 'back_link' => true )
+      );
+    }
+
     delete_option( 'atai_error_logs' );
     wp_safe_redirect( add_query_arg( 'atai_action', false ) );
+    exit;
   }
 
   /**
@@ -708,8 +949,9 @@ class ATAI_Settings {
       wp_send_json_error( __( 'Security check failed.', 'alttext-ai' ) );
     }
 
-    // Check user capabilities
-    if ( ! current_user_can( 'manage_options' ) ) {
+    // Check user capabilities using configured capability
+    $required_capability = ATAI_Utility::get_setting( 'atai_admin_capability', 'manage_options' );
+    if ( ! current_user_can( $required_capability ) ) {
       wp_send_json_error( __( 'Insufficient permissions.', 'alttext-ai' ) );
     }
 

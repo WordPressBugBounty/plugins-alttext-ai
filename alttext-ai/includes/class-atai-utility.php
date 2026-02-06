@@ -300,8 +300,8 @@ SQL;
    * @param integer $attachment_id  ID of the attachment
 	 */
   public static function lang_for_attachment( $attachment_id ) {
-    if ( get_option( 'atai_force_lang' ) === 'yes' ) {
-      $language = get_option( 'atai_lang' );
+    if ( ATAI_Utility::get_setting( 'atai_force_lang' ) === 'yes' ) {
+      $language = ATAI_Utility::get_setting( 'atai_lang', self::get_default_language() );
     }
     else {
       if ( ATAI_Utility::has_polylang() ) {
@@ -318,28 +318,82 @@ SQL;
     }
 
     if ( ! isset( $language ) ) {
-      $language = get_option( 'atai_lang' );
+      $language = ATAI_Utility::get_setting( 'atai_lang', self::get_default_language() );
     }
 
     return $language;
 	}
 
   /**
-	 * Fetch API key stored by the plugin.
-	 *
-	 * @since    1.0.0
+   * Get a setting with network fallback.
+   *
+   * When network-wide settings are enabled, this is authoritative - subsites
+   * cannot override network settings even if local options exist.
+   *
+   * @since 1.10.16
    * @access public
-	 */
+   * @static
+   *
+   * @param string $option_name The option name.
+   * @param mixed $default The default value if the option is not found.
+   *
+   * @return mixed The option value or default.
+   */
+  public static function get_setting( $option_name, $default = false ) {
+    // If not multisite, just get the regular option
+    if ( ! is_multisite() ) {
+      return get_option( $option_name, $default );
+    }
+
+    // If we're on the main site, just get the regular option
+    if ( is_main_site() ) {
+      return get_option( $option_name, $default );
+    }
+
+    // Check if network all settings is enabled - this is authoritative
+    if ( get_site_option( 'atai_network_all_settings' ) === 'yes' ) {
+      $network_settings = get_site_option( 'atai_network_settings', array() );
+      if ( array_key_exists( $option_name, $network_settings ) ) {
+        return $network_settings[ $option_name ];
+      }
+      // Network controls all settings but key is missing - return default, not local option
+      // This prevents subsites from accidentally using local values when network is authoritative
+      return $default;
+    }
+
+    // Check if network API key is enabled (but not all settings)
+    if ( get_site_option( 'atai_network_api_key' ) === 'yes' && $option_name === 'atai_api_key' ) {
+      // Always fetch directly from main site to avoid stale cached values
+      $main_site_id = get_main_site_id();
+      switch_to_blog( $main_site_id );
+      $value = get_option( $option_name, $default );
+      restore_current_blog();
+      return $value;
+    }
+
+    // Network settings not enabled - use local subsite option
+    return get_option( $option_name, $default );
+  }
+
+  /**
+   * Fetch API key stored by the plugin.
+   *
+   * Priority: ATAI_API_KEY constant > network settings > local option
+   *
+   * @since    1.0.0
+   * @access public
+   */
   public static function get_api_key() {
-    // Support for file-based API Key
+    // Support for file-based API Key (highest priority)
     if ( defined( 'ATAI_API_KEY' ) ) {
       $api_key = ATAI_API_KEY;
     } else {
-      $api_key = get_option( 'atai_api_key' );
+      // Use get_setting which handles network/local fallback consistently
+      $api_key = self::get_setting( 'atai_api_key', '' );
     }
 
     return apply_filters( 'atai_api_key', $api_key );
-	}
+  }
 
   /**
    * Return array of supported AI models [model_name => Display name]
@@ -361,10 +415,51 @@ SQL;
   }
 
   /**
+   * Get the default language based on WordPress site locale.
+   *
+   * Maps WordPress locale (e.g., 'en_US', 'de_DE') to our supported language codes.
+   * Falls back to 'en' if the locale isn't supported.
+   *
+   * @since    1.10.18
+   * @access   public
+   * @static
+   *
+   * @return string The default language code.
+   */
+  public static function get_default_language() {
+    $supported = self::supported_languages();
+    $locale    = get_locale(); // e.g., 'en_US', 'de_DE', 'pt_BR', 'zh_CN'
+
+    // Try exact match with regional variant (e.g., 'en_GB' -> 'en-gb')
+    $locale_lower = strtolower( str_replace( '_', '-', $locale ) );
+    if ( array_key_exists( $locale_lower, $supported ) ) {
+      return $locale_lower;
+    }
+
+    // Try uppercase regional for Chinese (e.g., 'zh_CN' -> 'zh-CN')
+    $parts = explode( '_', $locale );
+    if ( count( $parts ) === 2 ) {
+      $regional = strtolower( $parts[0] ) . '-' . strtoupper( $parts[1] );
+      if ( array_key_exists( $regional, $supported ) ) {
+        return $regional;
+      }
+    }
+
+    // Try just the language code (e.g., 'en_US' -> 'en')
+    $lang_code = strtolower( $parts[0] );
+    if ( array_key_exists( $lang_code, $supported ) ) {
+      return $lang_code;
+    }
+
+    // Fallback to English
+    return 'en';
+  }
+
+  /**
    * Return array of supported languages [lang_code => Display name]
    *
    * @since    1.0.29
-   * @access public
+   * @access   public
    */
   public static function supported_languages() {
     $supported_languages = array(
@@ -575,19 +670,6 @@ SQL;
     return $base_url;
   }
 
-  public static function print( $message, $die = false ) {
-    echo '<pre>';
-
-    if ( is_array( $message ) || is_object( $message ) ) {
-      print_r( $message );
-    } else {
-      var_dump( $message );
-    }
-
-    echo '</pre>';
-
-    if ( $die ) die();
-  }
   /**
    * Get the correct file size for an attachment, supporting offloaded media.
    *
@@ -624,6 +706,30 @@ SQL;
 
     ATAI_Utility::log_error("File size unavailable for attachment ID: {$attachment_id}");
     return null;
+  }
+
+  /**
+   * Check if settings are controlled by the network.
+   *
+   * @since 1.10.16
+   * @access public
+   * @static
+   *
+   * @return boolean True if settings are controlled by the network, false otherwise.
+   */
+  public static function is_network_controlled() {
+    // If not multisite, settings are never network controlled
+    if ( ! is_multisite() ) {
+      return false;
+    }
+    
+    // If we're on the main site, settings are never network controlled
+    if ( is_main_site() ) {
+      return false;
+    }
+    
+    // Check if network all settings is enabled
+    return get_site_option( 'atai_network_all_settings' ) === 'yes';
   }
 }
 } // End if class_exists check

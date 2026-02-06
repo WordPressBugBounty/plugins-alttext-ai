@@ -146,6 +146,13 @@ class ATAI {
 		 */
 		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'admin/class-atai-settings.php';
 
+		/**
+		 * Load WP-CLI commands if WP-CLI is available.
+		 */
+		if ( defined( 'WP_CLI' ) && WP_CLI ) {
+			require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-atai-cli.php';
+		}
+
 		$this->loader = new ATAI_Loader();
 	}
 
@@ -189,15 +196,23 @@ class ATAI {
 
     // Settings
     $this->loader->add_action( 'admin_menu', $settings, 'register_settings_pages' );
-		$this->loader->add_action( 'admin_init', $settings, 'register_settings' );
+    $this->loader->add_action( 'network_admin_menu', $settings, 'register_network_settings_page' );
+    $this->loader->add_action( 'admin_init', $settings, 'register_settings' );
     $this->loader->add_action( 'admin_init', $settings, 'clear_error_logs' );
     $this->loader->add_action( 'admin_init', $settings, 'remove_api_key_missing_param' );
+    $this->loader->add_action( 'network_admin_edit_atai_update_network_settings', $settings, 'handle_network_settings_update' );
     $this->loader->add_action( 'admin_notices', $settings, 'display_insufficient_credits_notice' );
     $this->loader->add_action( 'admin_notices', $settings, 'display_api_key_missing_notice' );
     $this->loader->add_action( 'wp_ajax_atai_expire_insufficient_credits_notice', $settings, 'expire_insufficient_credits_notice' );
     $this->loader->add_action( 'wp_ajax_atai_update_public_setting', $settings, 'ajax_update_public_setting' );
 
     $this->loader->add_filter( 'pre_update_option_atai_api_key', $settings, 'save_api_key', 10, 2 );
+    $this->loader->add_filter( 'option_page_capability_atai-settings', $settings, 'filter_settings_capability' );
+
+    // Refresh network settings cache when any setting is updated (multisite only)
+    if ( is_multisite() ) {
+      $this->loader->add_action( 'update_option', $settings, 'maybe_refresh_network_settings', 10, 1 );
+    }
 
     // Attachment
     $this->loader->add_action( 'admin_init', $attachment, 'action_single_generate', 99 );
@@ -206,6 +221,7 @@ class ATAI {
     $this->loader->add_action( 'wp_ajax_atai_bulk_generate', $attachment, 'ajax_bulk_generate' );
     $this->loader->add_action( 'wp_ajax_atai_edit_history', $attachment, 'ajax_edit_history' );
     $this->loader->add_action( 'wp_ajax_atai_check_image_eligibility', $attachment, 'ajax_check_attachment_eligibility' );
+    $this->loader->add_action( 'wp_ajax_atai_preview_csv', $attachment, 'ajax_preview_csv' );
     $this->loader->add_action( 'admin_notices', $attachment, 'render_bulk_select_notice' );
     $this->loader->add_action( 'restrict_manage_posts', $attachment, 'add_media_alt_filter', 1 );
     $this->loader->add_action( 'pre_get_posts', $attachment, 'media_alt_filter_handler' );

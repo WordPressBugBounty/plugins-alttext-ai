@@ -57,6 +57,7 @@
     <div class="mt-8">
       <p class="block mb-2 text-base font-medium text-gray-900">Step 2: Upload your CSV</p>
       <form method="post" enctype="multipart/form-data" id="alttextai-csv-import" class="group" data-file-loaded="false">
+        <?php wp_nonce_field( 'atai_csv_import', 'atai_csv_import_nonce' ); ?>
         <div class=" relative flex flex-col items-center gap-2  w-full px-6 py-10 sm:flex mt-2 text-center rounded-lg border-gray-500 hover:bg-gray-200 group transition-colors duration-200 ease-in-out border border-dashed box-border">
             <label class="absolute -inset-px size-[calc(100%+2px)] cursor-pointer group-hover:border-gray-500 border border-transparent rounded-lg font-semibold transition-colors duration-200 ease-in-out">
               <input
@@ -74,6 +75,27 @@
             <p class="text-center mx-auto hidden items-center gap-1.5 group-data-[file-loaded=false]:inline-flex"><span class="text-primary-600 font-medium rounded border border-gray-200 bg-gray-50  px-1.5 py-0.5 ">Choose File</span> or drag and drop.</p>
             <p class="text-center mx-auto hidden items-center gap-1.5 group-data-[file-loaded=true]:inline-flex">File added, import to continue.</p>
         </div>
+
+        <div id="atai-csv-language-selector" class="mt-6 hidden">
+          <label for="atai-csv-language" class="block mb-2 text-base font-medium text-gray-900">
+            <?php esc_html_e( 'Step 3: Select Language', 'alttext-ai' ); ?>
+          </label>
+          <p class="text-sm text-gray-600 mb-3">
+            <?php esc_html_e( 'Your CSV contains alt text in multiple languages. Choose which language to import:', 'alttext-ai' ); ?>
+          </p>
+
+          <select id="atai-csv-language" name="csv_language" class="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500">
+            <option value="">
+              <?php esc_html_e( 'Default (alt_text column)', 'alttext-ai' ); ?>
+            </option>
+            <!-- Language options populated via JavaScript -->
+          </select>
+
+          <p class="mt-2 text-xs text-gray-500">
+            <?php esc_html_e( 'Selecting "Default" uses the main alt_text column. This is backward compatible with older exports.', 'alttext-ai' ); ?>
+          </p>
+        </div>
+
         <div class="mt-4">
           <input type="submit" name="submit" value="Import" class="atai-button blue mt-4 cursor-pointer appearance-none no-underline shadow-sm">
         </div>
