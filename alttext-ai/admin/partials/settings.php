@@ -390,7 +390,7 @@
                       type="checkbox"
                       value="yes"
                       class="w-4 h-4 rounded border-gray-300 checked:bg-white text-primary-600 focus:ring-primary-600"
-                      <?php checked( 'yes', ATAI_Utility::get_setting( 'atai_enabled' ) ); ?>
+                      <?php checked( 'yes', ATAI_Utility::get_setting( 'atai_enabled', 'yes' ) ); ?>
                     >
                   </div>
                   <div class="-mt-1 text-sm leading-6">
@@ -485,7 +485,7 @@
                       type="checkbox"
                       value="yes"
                       class="w-4 h-4 rounded border-gray-300 checked:bg-white text-primary-600 focus:ring-primary-600"
-                      <?php checked( 'yes', ATAI_Utility::get_setting( 'atai_keywords' ) ); ?>
+                      <?php checked( 'yes', ATAI_Utility::get_setting( 'atai_keywords', 'yes' ) ); ?>
                     >
                   </div>
                   <div class="-mt-1 text-sm leading-6">
@@ -624,7 +624,7 @@
                       type="checkbox"
                       value="yes"
                       class="w-4 h-4 rounded border-gray-300 checked:bg-white text-primary-600 focus:ring-primary-600"
-                      <?php checked( 'yes', ATAI_Utility::get_setting( 'atai_ecomm' ) ); ?>
+                      <?php checked( 'yes', ATAI_Utility::get_setting( 'atai_ecomm', 'yes' ) ); ?>
                     >
                   </div>
                   <div class="-mt-1 text-sm leading-6">

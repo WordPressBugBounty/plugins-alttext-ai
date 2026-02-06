@@ -220,7 +220,7 @@ class ATAI_CLI_Command {
 
 		$api_key     = ATAI_Utility::get_api_key();
 		$has_key     = ! empty( $api_key );
-		$auto_gen    = ATAI_Utility::get_setting( 'atai_enabled', 'no' );
+		$auto_gen    = ATAI_Utility::get_setting( 'atai_enabled', 'yes' );
 
 		// Count images.
 		$missing_alt  = $this->count_images_missing_alt();

@@ -1,5 +1,9 @@
 *** AltText.ai Changelog ***
 
+2026-02-06 - version 1.10.21
+* Fixed: Settings like "Automatically generate alt text" and "Use SEO keywords" could appear unchecked on fresh installs
+* Fixed: WP-CLI status command reported incorrect auto-generation state on new installations
+
 2026-02-04 - version 1.10.20
 * NEW: Better support for custom media storage plugins (S3, Cloudinary, etc.)
 * Fixed: Occasionally, language dropdown could default to a language other than your WordPress site language

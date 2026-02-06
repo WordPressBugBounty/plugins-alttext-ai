@@ -552,7 +552,7 @@ class ATAI_Attachment {
    * @return Array ["ecomm" => ["product" => <title>]] or empty array if not found.
    */
   public function get_ecomm_data( $attachment_id, $product_id = null ) {
-    if ( ( ATAI_Utility::get_setting( 'atai_ecomm' ) === 'no' ) || ! ATAI_Utility::has_woocommerce() ) {
+    if ( ( ATAI_Utility::get_setting( 'atai_ecomm', 'yes' ) === 'no' ) || ! ATAI_Utility::has_woocommerce() ) {
       return array();
     }
 
@@ -640,7 +640,7 @@ SQL;
      * @return Array of keywords, or empty array if none.
      */
     public function get_seo_keywords( $attachment_id, $explicit_post_id = null ) {
-      if ( ( ATAI_Utility::get_setting( 'atai_keywords' ) === 'no' ) ) {
+      if ( ( ATAI_Utility::get_setting( 'atai_keywords', 'yes' ) === 'no' ) ) {
         return array();
       }
 
@@ -1103,7 +1103,7 @@ SQL;
    *                     to avoid race conditions with WPML metadata initialization.
    */
   public function add_attachment( $attachment_id ) {
-    if ( ATAI_Utility::get_setting( 'atai_enabled' ) === 'no' ) {
+    if ( ATAI_Utility::get_setting( 'atai_enabled', 'yes' ) === 'no' ) {
       return;
     }
 
@@ -1984,7 +1984,7 @@ SQL;
 
     // Generate alt text for the translation with explicit language
     // Pass language explicitly to avoid timing issues with Polylang metadata
-    if ( ATAI_Utility::get_setting( 'atai_enabled' ) === 'no' || ! $this->is_attachment_eligible( $tr_id, 'add' ) ) {
+    if ( ATAI_Utility::get_setting( 'atai_enabled', 'yes' ) === 'no' || ! $this->is_attachment_eligible( $tr_id, 'add' ) ) {
       return;
     }
 
