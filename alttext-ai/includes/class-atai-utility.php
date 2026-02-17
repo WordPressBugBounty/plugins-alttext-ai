@@ -118,13 +118,19 @@ FROM {$wpdb->postmeta} pm
 INNER JOIN
     {$wpdb->posts} p ON pm.post_id = p.ID
 WHERE
-    p.post_parent = {$parent_post_id}
+    p.post_parent = %d
+AND
+    p.post_type = 'attachment'
 AND
     pm.meta_key = '_wp_attached_file'
 AND
     ( (pm.meta_value = %s) OR (pm.meta_value = %s) )
 LIMIT 1
 SQL;
+
+      // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared
+      $sql = $wpdb->prepare($sql, $parent_post_id, $path, $scaled_path);
+      // phpcs:enable
     }
     else {
       $sql = <<<SQL
@@ -136,14 +142,59 @@ AND
     ( (pm.meta_value = %s) OR (pm.meta_value = %s) )
 LIMIT 1
 SQL;
+
+      // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared
+      $sql = $wpdb->prepare($sql, $path, $scaled_path);
+      // phpcs:enable
     }
 
-    // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared
-    $sql = $wpdb->prepare($sql, $path, $scaled_path);
+    // phpcs:disable WordPress.DB.PreparedSQL.NotPrepared
     $attachment_id = $wpdb->get_var( $sql );
     // phpcs:enable
 
     return !empty($attachment_id) ? intval( $attachment_id ) : null;
+  }
+
+  /**
+   * Normalize an image URL for attachment lookup.
+   *
+   * Resolves relative and protocol-relative URLs to absolute, strips query
+   * parameters and WordPress-generated dimension suffixes (-300x200). Returns
+   * null for external images (those not on the same site).
+   *
+   * @since  1.10.22
+   * @access public
+   * @static
+   *
+   * @param  string $src      The image src attribute value.
+   * @param  string $home_url The site's home URL (from home_url()).
+   * @return string|null Normalized URL or null if external/invalid.
+   */
+  public static function normalize_image_url( $src, $home_url ) {
+    if ( empty( $src ) || ! is_string( $src ) ) {
+      return null;
+    }
+
+    if ( substr( $src, 0, 1 ) === '/' && substr( $src, 0, 2 ) !== '//' ) {
+      $src = $home_url . $src;
+    } elseif ( substr( $src, 0, 2 ) === '//' ) {
+      $scheme = parse_url( $home_url, PHP_URL_SCHEME );
+      if ( $scheme ) {
+        $src = $scheme . ':' . $src;
+      }
+    }
+
+    // Origin check: ensure URL belongs to this site (trailing slash prevents
+    // example.com matching example.com.evil.com)
+    if ( strpos( $src, trailingslashit( $home_url ) ) !== 0 ) {
+      return null;
+    }
+
+    // Strip query parameters
+    $parts = explode( '?', $src, 2 );
+    $src = $parts[0];
+
+    return preg_replace( '/-\d+x\d+(?=\.[a-zA-Z]{3,4}$)/', '', $src );
   }
 
   /**

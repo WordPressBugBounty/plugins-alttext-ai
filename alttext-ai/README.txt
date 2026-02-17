@@ -5,7 +5,7 @@ Tags: image alt text, AI,  accessibility, alternative text, image to text
 Requires PHP: 7.4
 Requires at least: 4.7
 Tested up to: 6.9
-Stable tag: 1.10.21
+Stable tag: 1.10.22
 WC requires at least: 3.3
 WC tested up to: 10.1
 License: GPLv2 or later
@@ -70,6 +70,10 @@ Added support for SEOPress keywords.
 We now integrate Yoast, AllInOne, and RankMath focus keyphrases for alt text.
 
 == Changelog ==
+
+= 1.10.22 - 2026-02-17 =
+* NEW: Alt text now appears on page builder pages (Elementor, Divi, Beaver Builder, etc.) even when the builder strips it during editing
+* Improved: Faster alt text syncing with batch processing for pages with many images
 
 = 1.10.21 - 2026-02-06 =
 * Fixed: Settings like "Automatically generate alt text" and "Use SEO keywords" could appear unchecked on fresh installs

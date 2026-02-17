@@ -237,6 +237,9 @@ class ATAI {
     $this->loader->add_action( 'admin_notices', $post, 'display_enrich_post_content_success_notice' );
     $this->loader->add_action( 'admin_init', $post, 'register_bulk_action' );
 
+    // Sync media library alt text into page builder content on the frontend
+    $this->loader->add_filter( 'the_content', $post, 'sync_alt_text_to_content', 999 );
+
     // Other plugin integrations
     $this->loader->add_action( 'pll_translate_media', $attachment, 'on_translation_created', 99, 3 );
   }

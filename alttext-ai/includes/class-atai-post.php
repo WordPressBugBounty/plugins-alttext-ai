@@ -22,6 +22,15 @@
  * @author     AltText.ai <info@alttext.ai>
  */
 class ATAI_Post {
+
+  /**
+   * Cache for URL-to-attachment-ID lookups within a single request.
+   *
+   * @since 1.10.22
+   * @var array
+   */
+  private $url_lookup_cache = array();
+
   /**
    * Handle WP post deletion.
    *
@@ -316,8 +325,10 @@ class ATAI_Post {
     if ( version_compare( get_bloginfo( 'version' ), '6.2') >= 0 ) {
       $tags = new WP_HTML_Tag_Processor( $content );
 
+      $home_url = home_url();
+
       while ( $tags->next_tag( 'img' ) ) {
-        $img_url = $img_url_original = $tags->get_attribute( $img_src_attr );
+        $img_url = $tags->get_attribute( $img_src_attr );
 
         $should_generate = false;
         $total_images_found = $total_images_found + 1;
@@ -326,25 +337,23 @@ class ATAI_Post {
           continue;
         }
 
-        // If relative path, convert to full URL:
-        if ( substr($img_url, 0, 1) == "/" ) {
-          $img_url = $img_url_original = home_url() . $img_url;
+        // Normalize URL for local attachment lookup (strips dimensions, query params)
+        $img_url_normalized = ATAI_Utility::normalize_image_url( $img_url, $home_url );
+
+        // For external images, resolve to absolute URL for API calls
+        $img_url_absolute = $img_url;
+        if ( substr( $img_url_absolute, 0, 1 ) === '/' && substr( $img_url_absolute, 0, 2 ) !== '//' ) {
+          $img_url_absolute = $home_url . $img_url_absolute;
+        } elseif ( substr( $img_url_absolute, 0, 2 ) === '//' ) {
+          $img_url_absolute = 'https:' . $img_url_absolute;
         }
 
-        // Remove the dimensions from the URL to get the URL of the original image,
-        // only if the image is hosted on the same site
-        if ( strpos( $img_url, home_url() ) === 0 ) {
-          $img_url_original = preg_replace( '/-\d+x\d+(?=\.[a-zA-Z]{3,4}$)/', '', $img_url );
+        // Get the attachment ID from the normalized local URL
+        $attachment_id = null;
+        if ( $img_url_normalized ) {
+          $attachment_id = ATAI_Utility::lookup_attachment_id( $img_url_normalized, $post_id );
+          $attachment_id = $attachment_id ?? ATAI_Utility::lookup_attachment_id( $img_url_normalized );
         }
-
-        // Prepend protocol if missing:
-        if ( substr($img_url_original, 0, 2) == "//" ) {
-          $img_url_original = "https:" . $img_url_original;
-        }
-
-        // Get the attachment ID from the image URL
-        $attachment_id = ATAI_Utility::lookup_attachment_id($img_url_original, $post_id);
-        $attachment_id = $attachment_id ?? ATAI_Utility::lookup_attachment_id($img_url_original);
         $alt_text = false;
 
         if ( $attachment_id ) {
@@ -361,7 +370,7 @@ class ATAI_Post {
 
           if ( $overwrite || empty( $alt_text ) ) {
             $should_generate = true;
-            $alt_text = $atai_attachment->generate_alt( null, $img_url_original, array( 'keywords' => $keywords ) );
+            $alt_text = $atai_attachment->generate_alt( null, $img_url_absolute, array( 'keywords' => $keywords ) );
           }
         }
 
@@ -616,4 +625,117 @@ class ATAI_Post {
       add_filter( "handle_bulk_actions-edit-{$post_type}", [$this, 'bulk_select_action_handler'], 100, 3 );
     }
   }
+
+  /**
+   * Sync alt text from the media library into rendered page content.
+   *
+   * Page builders (Elementor, Divi, YOO-Theme, etc.) store their own copy of image
+   * alt text that doesn't stay in sync with the media library. This filter runs late
+   * on the_content (after builders render) and patches any <img> tag that has an empty
+   * alt attribute with the alt text from the media library.
+   *
+   * @since  1.10.22
+   * @param  string $content The post content.
+   * @return string The content with alt text synced from the media library.
+  */
+  public function sync_alt_text_to_content( $content ) {
+    $doing_ajax = function_exists( 'wp_doing_ajax' ) ? wp_doing_ajax() : ( defined( 'DOING_AJAX' ) && DOING_AJAX );
+
+    if ( ( is_admin() && ! $doing_ajax ) || empty( $content ) || stripos( $content, '<img' ) === false ) {
+      return $content;
+    }
+
+    if ( defined( 'REST_REQUEST' ) && REST_REQUEST ) {
+      return $content;
+    }
+
+    if ( defined( 'WP_CLI' ) && WP_CLI ) {
+      return $content;
+    }
+
+    if ( ! apply_filters( 'atai_sync_alt_text_enabled', true ) ) {
+      return $content;
+    }
+
+    if ( ! class_exists( 'WP_HTML_Tag_Processor' ) ) {
+      return $content;
+    }
+
+    $home_url = home_url();
+    $tags = new WP_HTML_Tag_Processor( $content );
+
+    // Pass 1: Collect attachment IDs and bookmark positions for images needing alt
+    $pending = array();
+    $bookmark_index = 0;
+    while ( $tags->next_tag( 'img' ) ) {
+      $alt = $tags->get_attribute( 'alt' );
+      if ( ! empty( $alt ) ) {
+        continue;
+      }
+
+      $attachment_id = $this->resolve_attachment_id( $tags, $home_url );
+      if ( $attachment_id ) {
+        $bookmark = 'img_' . $bookmark_index;
+        $tags->set_bookmark( $bookmark );
+        $pending[ $bookmark ] = $attachment_id;
+        $bookmark_index++;
+      }
+    }
+
+    if ( empty( $pending ) ) {
+      return $content;
+    }
+
+    // Prime the postmeta cache for all attachment IDs in one query
+    update_postmeta_cache( array_unique( array_values( $pending ) ) );
+
+    // Pass 2: Seek to each bookmarked img and apply alt text
+    foreach ( $pending as $bookmark => $attachment_id ) {
+      $tags->seek( $bookmark );
+      $alt_text = get_post_meta( $attachment_id, '_wp_attachment_image_alt', true );
+      if ( ! empty( $alt_text ) ) {
+        $tags->set_attribute( 'alt', wp_strip_all_tags( $alt_text ) );
+      }
+      $tags->release_bookmark( $bookmark );
+    }
+
+    return $tags->get_updated_html();
+  }
+
+  /**
+   * Resolve an attachment ID from an img tag via class or URL lookup.
+   *
+   * @since  1.10.22
+   * @param  WP_HTML_Tag_Processor $tags     The tag processor positioned on an img tag.
+   * @param  string                $home_url The site's home URL.
+   * @return int|null Attachment ID or null if not found.
+   */
+  private function resolve_attachment_id( $tags, $home_url ) {
+    // Fast path: get attachment ID from wp-image-{id} class
+    $class = $tags->get_attribute( 'class' );
+    if ( $class && preg_match( '/wp-image-(\d+)/', $class, $matches ) ) {
+      return (int) $matches[1];
+    }
+
+    // Fallback: URL-based lookup for local images (cached per request)
+    $src = $tags->get_attribute( 'src' );
+    if ( ! $src ) {
+      return null;
+    }
+
+    $src = ATAI_Utility::normalize_image_url( $src, $home_url );
+    if ( ! $src ) {
+      return null;
+    }
+
+    if ( array_key_exists( $src, $this->url_lookup_cache ) ) {
+      return $this->url_lookup_cache[ $src ];
+    }
+
+    $attachment_id = ATAI_Utility::lookup_attachment_id( $src );
+    $this->url_lookup_cache[ $src ] = $attachment_id;
+
+    return $attachment_id;
+  }
+
 }

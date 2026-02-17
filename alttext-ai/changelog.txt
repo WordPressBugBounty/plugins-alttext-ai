@@ -1,5 +1,9 @@
 *** AltText.ai Changelog ***
 
+2026-02-17 - version 1.10.22
+* NEW: Alt text now appears on page builder pages (Elementor, Divi, Beaver Builder, etc.) even when the builder strips it during editing
+* Improved: Faster alt text syncing with batch processing for pages with many images
+
 2026-02-06 - version 1.10.21
 * Fixed: Settings like "Automatically generate alt text" and "Use SEO keywords" could appear unchecked on fresh installs
 * Fixed: WP-CLI status command reported incorrect auto-generation state on new installations
