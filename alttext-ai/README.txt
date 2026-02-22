@@ -5,7 +5,7 @@ Tags: image alt text, AI,  accessibility, alternative text, image to text
 Requires PHP: 7.4
 Requires at least: 4.7
 Tested up to: 6.9
-Stable tag: 1.10.27
+Stable tag: 1.10.28
 WC requires at least: 3.3
 WC tested up to: 10.1
 License: GPLv2 or later
@@ -71,7 +71,7 @@ We now integrate Yoast, AllInOne, and RankMath focus keyphrases for alt text.
 
 == Changelog ==
 
-= 1.10.27 - 2026-02-22 =
+= 1.10.28 - 2026-02-22 =
 * Fixed: Missing Elementor sync file that caused fatal error on plugin activation
 
 = 1.10.26 - 2026-02-22 =
