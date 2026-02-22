@@ -1,5 +1,11 @@
 *** AltText.ai Changelog ***
 
+2026-02-20 - version 1.10.25
+* NEW: Network Bulk Generate for WordPress Multisite — manage alt text across all your subsites from one central Network Admin dashboard
+* NEW: WP-CLI `wp alttext enrich` command — generate alt text for images embedded in posts and pages directly from the command line
+* NEW: WP-CLI `wp alttext import` command — import alt text in bulk from AltText.ai CSV exports via the command line
+* Fixed: Alt text updates in the Media Library now sync correctly into Elementor image modals without requiring images to be re-added
+
 2026-02-17 - version 1.10.22
 * NEW: Alt text now appears on page builder pages (Elementor, Divi, Beaver Builder, etc.) even when the builder strips it during editing
 * Improved: Faster alt text syncing with batch processing for pages with many images

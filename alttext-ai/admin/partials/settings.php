@@ -827,9 +827,12 @@
       </div>
     </div>
 
-    <?php if ( ! $settings_network_controlled ) : ?>
-      <input type="submit" name="submit" value="Save Changes" class="atai-button blue mt-4 cursor-pointer appearance-none no-underline shadow-sm">
-    <?php endif; ?>
+    <div class="atai-settings-footer">
+      <?php if ( ! $settings_network_controlled ) : ?>
+        <input type="submit" name="submit" value="Save Changes" class="atai-button blue cursor-pointer appearance-none no-underline shadow-sm">
+      <?php endif; ?>
+      <span class="atai-version">v<?php echo esc_html( ATAI_VERSION ); ?></span>
+    </div>
   </form>
 </div>
 

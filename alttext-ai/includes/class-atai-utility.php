@@ -401,20 +401,27 @@ SQL;
       return get_option( $option_name, $default );
     }
 
-    // Check if network all settings is enabled - this is authoritative
+    // API key is always fetched directly from the main site when any network sharing is
+    // enabled. This bypasses the atai_network_settings cache which can hold a stale empty
+    // value if the key was set after the cache was last written (e.g. network settings were
+    // enabled before the API key was saved, causing the cache to record atai_api_key = '').
+    if ( $option_name === 'atai_api_key' &&
+         ( get_site_option( 'atai_network_all_settings' ) === 'yes' ||
+           get_site_option( 'atai_network_api_key' ) === 'yes' ) ) {
+      $main_site_id = get_main_site_id();
+      switch_to_blog( $main_site_id );
+      $value = get_option( $option_name, $default );
+      restore_current_blog();
+      return $value;
+    }
+
+    // Check if network all settings is enabled - use the cache for non-API-key settings
     if ( get_site_option( 'atai_network_all_settings' ) === 'yes' ) {
       $network_settings = get_site_option( 'atai_network_settings', array() );
       if ( array_key_exists( $option_name, $network_settings ) ) {
         return $network_settings[ $option_name ];
       }
-      // Network controls all settings but key is missing - return default, not local option
-      // This prevents subsites from accidentally using local values when network is authoritative
-      return $default;
-    }
-
-    // Check if network API key is enabled (but not all settings)
-    if ( get_site_option( 'atai_network_api_key' ) === 'yes' && $option_name === 'atai_api_key' ) {
-      // Always fetch directly from main site to avoid stale cached values
+      // Cache miss: read directly from main site rather than returning empty default.
       $main_site_id = get_main_site_id();
       switch_to_blog( $main_site_id );
       $value = get_option( $option_name, $default );

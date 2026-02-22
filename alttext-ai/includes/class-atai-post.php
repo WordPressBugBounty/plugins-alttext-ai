@@ -322,6 +322,10 @@ class ATAI_Post {
     $updated_content = '';
     $img_src_attr = ATAI_Utility::get_setting( 'atai_refresh_src_attr', 'src' );
 
+    // Pause per-image Elementor sync during the loop to prevent read-modify-write
+    // races on _elementor_data. A single comprehensive sync runs after the loop.
+    ATAI_Elementor_Sync::$paused = true;
+
     if ( version_compare( get_bloginfo( 'version' ), '6.2') >= 0 ) {
       $tags = new WP_HTML_Tag_Processor( $content );
 
@@ -471,6 +475,8 @@ class ATAI_Post {
       $num_alttext_generated += $product_response['num_alttext_generated'];
     }
     
+    ATAI_Elementor_Sync::$paused = false;
+
     if ( !empty($updated_content) ) {
       wp_update_post( array(
         'ID' => $post_id,
@@ -478,6 +484,10 @@ class ATAI_Post {
         )
       );
     }
+
+    // Sync alt text into Elementor's cached page data after all images are processed.
+    // Uses an action so the dependency on ATAI_Elementor_Sync stays in the bootstrapper.
+    do_action( 'atai_post_enrichment_complete', $post_id );
 
     if ( $is_ajax ) {
       // Set a transient to show a success notice after page reload
@@ -497,7 +507,8 @@ class ATAI_Post {
     return array(
       'status' => 'success',
       'total_images_found' => $total_images_found,
-      'num_alttext_generated' => $num_alttext_generated
+      'num_alttext_generated' => $num_alttext_generated,
+      'no_credits' => $no_credits,
     );
   }
 
@@ -592,6 +603,7 @@ class ATAI_Post {
         $total_images_found += $response['total_images_found'] ?? 0;
         $num_alttext_generated += $response['num_alttext_generated'] ?? 0;
       }
+
     }
 
     // Set a transient to show a success notice after page reload

@@ -2343,4 +2343,205 @@ SQL;
 
     $query->set( 'meta_query', $meta_query );
   }
+
+
+  /**
+   * Get image stats across all network sites.
+   *
+   * @since 1.10.20
+   * @access public
+   */
+  public function ajax_network_get_stats() {
+    check_ajax_referer( 'atai_network_bulk_generate', 'security' );
+
+    if ( ! current_user_can( 'manage_network_options' ) ) {
+      wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'alttext-ai' ) ) );
+    }
+
+    $stats = array();
+    $offset = 0;
+    $batch_size = 200;
+
+    do {
+      $sites = get_sites(
+        array(
+          'number' => $batch_size,
+          'offset' => $offset,
+        )
+      );
+
+      foreach ( $sites as $site ) {
+        switch_to_blog( $site->blog_id );
+
+        try {
+          global $wpdb;
+
+          // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+          $total = (int) $wpdb->get_var(
+            "SELECT COUNT(*)
+             FROM {$wpdb->posts}
+             WHERE post_mime_type LIKE 'image/%'
+               AND post_type = 'attachment'
+               AND post_status = 'inherit'"
+          );
+
+          // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+          $missing = (int) $wpdb->get_var(
+            "SELECT COUNT(*)
+             FROM {$wpdb->posts} p
+             LEFT JOIN {$wpdb->postmeta} pm
+               ON p.ID = pm.post_id AND pm.meta_key = '_wp_attachment_image_alt'
+             WHERE p.post_mime_type LIKE 'image/%'
+               AND p.post_type = 'attachment'
+               AND p.post_status = 'inherit'
+               AND (pm.post_id IS NULL OR TRIM(COALESCE(pm.meta_value, '')) = '')"
+          );
+
+          $stats[] = array(
+            'blog_id'      => (int) $site->blog_id,
+            'name'         => get_bloginfo( 'name' ),
+            'url'          => get_bloginfo( 'url' ),
+            'total_images' => $total,
+            'missing_alt'  => $missing,
+          );
+        } catch ( \Exception $e ) {
+          // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log, QITStandard.PHP.DebugCode.DebugFunctionFound -- Production error logging
+          error_log( 'ATAI network stats: site ' . $site->blog_id . ' – ' . $e->getMessage() );
+          $stats[] = array(
+            'blog_id'      => (int) $site->blog_id,
+            'name'         => get_bloginfo( 'name' ),
+            'url'          => get_bloginfo( 'url' ),
+            'total_images' => 0,
+            'missing_alt'  => 0,
+            'error'        => true,
+          );
+        }
+
+        restore_current_blog();
+      }
+
+      $offset += count( $sites );
+    } while ( count( $sites ) === $batch_size );
+
+    wp_send_json_success( array( 'sites' => $stats ) );
+  }
+
+
+  /**
+   * Bulk generate alt text for a specific network site.
+   *
+   * @since 1.10.20
+   * @access public
+   */
+  public function ajax_network_bulk_generate() {
+    check_ajax_referer( 'atai_network_bulk_generate', 'security' );
+
+    if ( ! current_user_can( 'manage_network_options' ) ) {
+      wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'alttext-ai' ) ) );
+    }
+
+    $blog_id = absint( $_REQUEST['blog_id'] ?? 0 );
+    if ( ! $blog_id || ! get_blog_details( $blog_id ) ) {
+      wp_send_json_error( array( 'message' => __( 'Invalid site.', 'alttext-ai' ) ) );
+    }
+
+    switch_to_blog( $blog_id );
+
+    try {
+      global $wpdb;
+      $last_post_id = absint( $_REQUEST['last_post_id'] ?? 0 );
+      $query_limit  = min( max( absint( $_REQUEST['posts_per_page'] ?? 0 ), 1 ), 5 );
+
+      // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+      $images = $wpdb->get_results(
+        $wpdb->prepare(
+          "SELECT p.ID as post_id
+           FROM {$wpdb->posts} p
+           LEFT JOIN {$wpdb->postmeta} AS pm
+             ON (p.ID = pm.post_id AND pm.meta_key = '_wp_attachment_image_alt')
+           WHERE p.ID > %d
+             AND (p.post_mime_type LIKE %s)
+             AND (pm.post_id IS NULL OR TRIM(COALESCE(pm.meta_value, '')) = '')
+             AND p.post_type = 'attachment'
+             AND (p.post_status = 'inherit')
+           GROUP BY p.ID ORDER BY p.ID LIMIT %d",
+          $last_post_id,
+          $wpdb->esc_like( 'image/' ) . '%',
+          $query_limit
+        )
+      );
+
+      if ( null === $images || $wpdb->last_error ) {
+        restore_current_blog();
+        wp_send_json_error( array( 'message' => __( 'Database query failed.', 'alttext-ai' ) ) );
+      }
+
+      $images_successful = 0;
+      $loop_count        = 0;
+
+      if ( empty( $images ) ) {
+        restore_current_blog();
+        wp_send_json_success( array(
+          'message'       => __( 'Site complete.', 'alttext-ai' ),
+          'process_count' => 0,
+          'success_count' => 0,
+          'last_post_id'  => $last_post_id,
+          'recursive'     => false,
+          'blog_id'       => $blog_id,
+        ) );
+      }
+
+      foreach ( $images as $image ) {
+        $attachment_id = absint( $image->post_id );
+
+        if ( ! $this->is_attachment_eligible( $attachment_id, 'network-bulk' ) ) {
+          $last_post_id = $attachment_id;
+          if ( ++$loop_count >= $query_limit ) {
+            break;
+          }
+          continue;
+        }
+
+        $response = $this->generate_alt( $attachment_id );
+
+        if ( $response === 'insufficient_credits' ) {
+          restore_current_blog();
+          wp_send_json_success( array(
+            'stop_reason'   => 'no_credits',
+            'message'       => __( 'No more credits.', 'alttext-ai' ),
+            'process_count' => $loop_count,
+            'success_count' => $images_successful,
+            'last_post_id'  => $last_post_id,
+            'recursive'     => false,
+            'blog_id'       => $blog_id,
+          ) );
+        }
+
+        $last_post_id = $attachment_id;
+
+        if ( is_string( $response ) && ! empty( $response ) && $response !== 'url_access_error' ) {
+          $images_successful++;
+        }
+
+        if ( ++$loop_count >= $query_limit ) {
+          break;
+        }
+      }
+    } catch ( \Exception $e ) {
+      // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log, QITStandard.PHP.DebugCode.DebugFunctionFound -- Production error logging
+      error_log( 'ATAI network bulk generate: blog ' . $blog_id . ' – ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine() );
+      restore_current_blog();
+      wp_send_json_error( array( 'message' => __( 'An unexpected error occurred.', 'alttext-ai' ) ) );
+    }
+
+    restore_current_blog();
+
+    wp_send_json_success( array(
+      'process_count' => $loop_count,
+      'success_count' => $images_successful,
+      'last_post_id'  => $last_post_id,
+      'recursive'     => true,
+      'blog_id'       => $blog_id,
+    ) );
+  }
 }

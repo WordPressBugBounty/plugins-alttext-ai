@@ -143,12 +143,14 @@ class ATAI_API {
         // Use WordPress functions when possible, with error handling
         $file_contents = @file_get_contents( $file_path );
         if ( $file_contents === false ) {
+          // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log, QITStandard.PHP.DebugCode.DebugFunctionFound -- Production error logging
           error_log( "ATAI: Failed to read file for attachment {$attachment_id}" );
           return false;
         }
 
         $encoded_content = @base64_encode( $file_contents );
         if ( $encoded_content === false ) {
+          // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log, QITStandard.PHP.DebugCode.DebugFunctionFound -- Production error logging
           error_log( "ATAI: Failed to encode file for attachment {$attachment_id}" );
           return false;
         }

@@ -5,7 +5,7 @@ Tags: image alt text, AI,  accessibility, alternative text, image to text
 Requires PHP: 7.4
 Requires at least: 4.7
 Tested up to: 6.9
-Stable tag: 1.10.22
+Stable tag: 1.10.25
 WC requires at least: 3.3
 WC tested up to: 10.1
 License: GPLv2 or later
@@ -70,6 +70,12 @@ Added support for SEOPress keywords.
 We now integrate Yoast, AllInOne, and RankMath focus keyphrases for alt text.
 
 == Changelog ==
+
+= 1.10.25 - 2026-02-20 =
+* NEW: Network Bulk Generate for WordPress Multisite — manage alt text across all your subsites from one central Network Admin dashboard
+* NEW: WP-CLI `wp alttext enrich` command — generate alt text for images embedded in posts and pages directly from the command line
+* NEW: WP-CLI `wp alttext import` command — import alt text in bulk from AltText.ai CSV exports via the command line
+* Fixed: Alt text updates in the Media Library now sync correctly into Elementor image modals without requiring images to be re-added
 
 = 1.10.22 - 2026-02-17 =
 * NEW: Alt text now appears on page builder pages (Elementor, Divi, Beaver Builder, etc.) even when the builder strips it during editing

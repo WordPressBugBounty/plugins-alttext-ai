@@ -183,6 +183,57 @@ class ATAI_Settings {
   }
 
   /**
+   * Register the network bulk generate page.
+   *
+   * @since    1.10.20
+   * @access   public
+   */
+  public function register_network_bulk_generate_page() {
+    if ( ! is_multisite() ) {
+      return;
+    }
+
+    add_submenu_page(
+      'settings.php',
+      __( 'AltText.ai Network Bulk Generate', 'alttext-ai' ),
+      __( 'AltText.ai Bulk Generate', 'alttext-ai' ),
+      'manage_network_options',
+      'atai-network-bulk-generate',
+      array( $this, 'render_network_bulk_generate_page' )
+    );
+
+    add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_network_bulk_generate_scripts' ) );
+  }
+
+  /**
+   * Render the network bulk generate page.
+   *
+   * @since    1.10.20
+   * @access   public
+   */
+  public function render_network_bulk_generate_page() {
+    $this->load_account();
+    require_once plugin_dir_path( dirname( __FILE__ ) ) . 'admin/partials/network-bulk-generate.php';
+  }
+
+  /**
+   * Enqueue scripts for the network bulk generate page.
+   *
+   * @since    1.10.20
+   */
+  public function enqueue_network_bulk_generate_scripts( $hook ) {
+    if ( strpos( $hook, 'atai-network-bulk-generate' ) === false ) {
+      return;
+    }
+    wp_enqueue_style( 'atai-admin', plugin_dir_url( __FILE__ ) . 'css/admin.css', array(), $this->version, 'all' );
+    wp_enqueue_script( 'atai-network-admin', plugin_dir_url( __FILE__ ) . 'js/network-admin.js', array( 'jquery' ), $this->version, true );
+    wp_localize_script( 'atai-network-admin', 'wp_atai_network', array(
+      'ajax_url' => admin_url( 'admin-ajax.php' ),
+      'security' => wp_create_nonce( 'atai_network_bulk_generate' ),
+    ) );
+  }
+
+  /**
    * Render the settings page.
    *
    * @since    1.0.0
@@ -861,6 +912,11 @@ class ATAI_Settings {
    * @since 1.0.20
    */
   public function display_insufficient_credits_notice() {
+    // On subsites where the network admin has hidden credit information, suppress this notice
+    if ( is_multisite() && ! is_main_site() && get_site_option( 'atai_network_hide_credits' ) === 'yes' ) {
+      return;
+    }
+
     // Bail early if notice transient is not set
     if ( ! get_transient( 'atai_insufficient_credits' ) ) {
       return;

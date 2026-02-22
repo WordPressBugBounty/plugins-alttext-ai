@@ -136,6 +136,11 @@ class ATAI {
 		 */
 		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-atai-post.php';
 
+    /**
+		 * The class responsible for syncing alt text into Elementor's cached data.
+		 */
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-atai-elementor-sync.php';
+
 		/**
 		 * The class responsible for defining all actions that occur in the admin area.
 		 */
@@ -179,11 +184,12 @@ class ATAI {
 	 * @access   private
 	 */
 	private function define_admin_hooks() {
-		$database = new ATAI_Database();
-		$admin = new ATAI_Admin( $this->get_plugin_name(), $this->get_version() );
-		$settings = new ATAI_Settings( $this->get_version() );
-		$attachment = new ATAI_Attachment();
-		$post = new ATAI_Post();
+		$database        = new ATAI_Database();
+		$admin           = new ATAI_Admin( $this->get_plugin_name(), $this->get_version() );
+		$settings        = new ATAI_Settings( $this->get_version() );
+		$attachment      = new ATAI_Attachment();
+		$post            = new ATAI_Post();
+		$elementor_sync  = new ATAI_Elementor_Sync();
 
     // Database
     $this->loader->add_action( 'plugins_loaded', $database, 'check_database_schema' );
@@ -208,6 +214,13 @@ class ATAI {
 
     $this->loader->add_filter( 'pre_update_option_atai_api_key', $settings, 'save_api_key', 10, 2 );
     $this->loader->add_filter( 'option_page_capability_atai-settings', $settings, 'filter_settings_capability' );
+
+    // Network Bulk Generate
+    $this->loader->add_action( 'network_admin_menu', $settings, 'register_network_bulk_generate_page' );
+    if ( is_multisite() ) {
+      $this->loader->add_action( 'wp_ajax_atai_network_get_stats', $attachment, 'ajax_network_get_stats' );
+      $this->loader->add_action( 'wp_ajax_atai_network_bulk_generate', $attachment, 'ajax_network_bulk_generate' );
+    }
 
     // Refresh network settings cache when any setting is updated (multisite only)
     if ( is_multisite() ) {
@@ -239,6 +252,15 @@ class ATAI {
 
     // Sync media library alt text into page builder content on the frontend
     $this->loader->add_filter( 'the_content', $post, 'sync_alt_text_to_content', 999 );
+
+    // Sync media library alt text into Elementor's cached image data.
+    // Hook both added_post_meta (first-time alt text) and updated_post_meta (subsequent edits).
+    $this->loader->add_action( 'added_post_meta', $elementor_sync, 'sync_alt_to_elementor', 10, 4 );
+    $this->loader->add_action( 'updated_post_meta', $elementor_sync, 'sync_alt_to_elementor', 10, 4 );
+
+    // After bulk post enrichment, do one comprehensive Elementor sync for the page
+    // (avoids per-image read-modify-write races during the bulk loop).
+    $this->loader->add_action( 'atai_post_enrichment_complete', $elementor_sync, 'sync_post' );
 
     // Other plugin integrations
     $this->loader->add_action( 'pll_translate_media', $attachment, 'on_translation_created', 99, 3 );
