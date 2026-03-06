@@ -188,9 +188,12 @@
                   <div class="bg-red-900/15 p-px rounded-lg">
                     <p class="py-2 px-4 font-semibold leading-relaxed text-red-600 bg-red-100 rounded-lg sm:p-4 m-0">
                     <?php
+                      $account_error_message = ( $this->account_error_type === 'auth' )
+                        ? __( 'Your API key is invalid. Please check your API key or <a href="%s" target="_blank" class="font-medium text-primary-600 hover:text-primary-500">create a new API key</a>.', 'alttext-ai' )
+                        : __( 'Unable to verify your API key. Please check your connection and try again, or <a href="%s" target="_blank" class="font-medium text-primary-600 hover:text-primary-500">create a new API key</a>.', 'alttext-ai' );
                       printf (
                         wp_kses(
-                          __( 'Your API key is invalid. Please check your API key or <a href="%s" target="_blank" class="font-medium text-primary-600 hover:text-primary-500">create a new API key</a>.', 'alttext-ai' ),
+                          $account_error_message,
                           array( 'a' => array( 'href' => array(), 'target' => array(), 'class' => array() ) )
                         ),
                         esc_url( 'https://alttext.ai/account/api_keys' )

@@ -28,6 +28,15 @@ class ATAI_Settings {
 	 */
 	private $account;
 
+  /**
+	 * Last account lookup failure classification.
+	 *
+	 * @since    1.10.30
+	 * @access   private
+	 * @var      string|null    $account_error_type
+	 */
+	private $account_error_type;
+
   private $version;
 
 	/**
@@ -49,21 +58,18 @@ class ATAI_Settings {
    */
   private function load_account() {
     $api_key = ATAI_Utility::get_api_key();
-    $this->account = array(
-      'plan'          => '',
-      'expires_at'    => '',
-      'usage'         => '',
-      'quota'         => '',
-      'available'     => '',
-      'whitelabel'    => false,
-    );
+    $this->account_error_type = null;
 
     if ( empty( $api_key ) ) {
+      $this->account = false;
       return;
     }
 
     $api = new ATAI_API( $api_key );
     $this->account = $api->get_account();
+    if ( false === $this->account ) {
+      $this->account_error_type = $api->get_last_account_error_type();
+    }
   }
 
 	/**
@@ -714,8 +720,12 @@ class ATAI_Settings {
 
     $api = new ATAI_API( $api_key );
 
-    if ( ! $api->get_account() ) {
-      add_settings_error( 'invalid-api-key', '', esc_html__( 'Your API key is not valid.', 'alttext-ai' ) );
+    $account = $api->get_account();
+    if ( ! $account ) {
+      $message = ( 'auth' === $api->get_last_account_error_type() )
+        ? esc_html__( 'Your API key is not valid.', 'alttext-ai' )
+        : esc_html__( 'Unable to verify your API key right now. Please check your connection and try again.', 'alttext-ai' );
+      add_settings_error( 'invalid-api-key', '', $message );
       return false;
     }
 

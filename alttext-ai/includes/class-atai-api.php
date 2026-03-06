@@ -41,6 +41,15 @@ class ATAI_API {
 	 */
 	private $base_url;
 
+  /**
+	 * The last account lookup error type.
+	 *
+	 * @since    1.10.30
+	 * @access   private
+	 * @var      string|null    $last_account_error_type    auth|transport|http|decode
+	 */
+	private $last_account_error_type;
+
 	/**
 	 * Initialize the class and set its properties.
 	 *
@@ -58,6 +67,8 @@ class ATAI_API {
    * @access public
    */
   public function get_account() {
+    $this->last_account_error_type = null;
+
     $response = wp_remote_get(
       $this->base_url . '/account',
       array(
@@ -65,22 +76,31 @@ class ATAI_API {
           'Content-Type'  => 'application/json',
           'X-Api-Key'     => $this->api_key,
           'X-Client'      => 'wordpress/' . ATAI_VERSION
-        )
+        ),
+        'timeout'       => 15
       )
     );
 
     if ( ! is_array( $response ) || is_wp_error( $response ) ) {
+      $this->last_account_error_type = 'transport';
       return false;
     }
 
     /**
      * Response code is not 2xx
      */
-    if ( substr( wp_remote_retrieve_response_code( $response ), 0, 1 ) != '2' ) {
+    $response_code = (int) wp_remote_retrieve_response_code( $response );
+    if ( substr( (string) $response_code, 0, 1 ) != '2' ) {
+      $this->last_account_error_type = in_array( $response_code, array( 401, 403 ), true ) ? 'auth' : 'http';
       return false;
     }
 
     $response = json_decode( wp_remote_retrieve_body( $response ), true );
+    if ( ! is_array( $response ) || ! isset( $response['usage'], $response['usage_limit'] ) ) {
+      $this->last_account_error_type = 'decode';
+      return false;
+    }
+
     $account = array(
       'plan'          => 'Free Trial',
       'expires_at'    => 'never',
@@ -101,6 +121,18 @@ class ATAI_API {
     }
 
     return $account;
+  }
+
+  /**
+   * Get the last account lookup error type.
+   *
+   * @since 1.10.30
+   * @access public
+   *
+   * @return string|null
+   */
+  public function get_last_account_error_type() {
+    return $this->last_account_error_type;
   }
 
   /**

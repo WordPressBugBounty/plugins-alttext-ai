@@ -13,7 +13,10 @@
 <?php  if ( ! defined( 'WPINC' ) ) die; ?>
 
 <?php
-  $cannot_bulk_update = ( ! $this->account || ! $this->account['available'] );
+  $account_check_failed = ( $this->account === false );
+  $account_error_is_auth = ( $account_check_failed && $this->account_error_type === 'auth' );
+  $no_credits = ( ! $account_check_failed && is_array( $this->account ) && empty( $this->account['available'] ) );
+  $cannot_bulk_update = ( $account_check_failed || $no_credits );
   $subscriptions_url = esc_url( ATAI_Utility::get_credits_url() );
   $action = sanitize_text_field( $_REQUEST['atai_action'] ?? 'normal' );
 
@@ -205,11 +208,11 @@ SQL;
         </div>
         <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 bg-white rounded-r-lg px-4 py-6 sm:px-6 xl:px-8">
           <dt class="text-sm/6 font-medium text-gray-500"><?php esc_html_e( 'Available Credits', 'alttext-ai' ); ?></dt>
-          <dd class="text-xs font-medium text-<?php echo ($this->account && $this->account['available'] > 100) ? 'emerald-600' : 'rose-600'; ?>">
-            <?php echo ($this->account && $this->account['available'] > 100) ? '' : 'Low'; ?>
+          <dd class="text-xs font-medium text-<?php echo $account_check_failed ? 'gray-500' : ( ($this->account && $this->account['available'] > 100) ? 'emerald-600' : 'rose-600' ); ?>">
+            <?php echo $account_check_failed ? esc_html__( 'Unavailable', 'alttext-ai' ) : ( ($this->account && $this->account['available'] > 100) ? '' : 'Low' ); ?>
           </dd>
           <dd class="w-full flex-none text-3xl/10 font-medium tracking-tight text-gray-900 ml-0">
-            <?php echo $this->account ? esc_html(number_format((int) $this->account['available'])) : '0'; ?>
+            <?php echo $account_check_failed ? esc_html__( 'N/A', 'alttext-ai' ) : esc_html( number_format( (int) $this->account['available'] ) ); ?>
           </dd>
         </div>
       </dl>
@@ -228,15 +231,23 @@ SQL;
           </div>
           <div class="ml-3">
             <p class="text-sm text-amber-700">
-              <?php esc_html_e( 'You have no more credits left. To bulk update your library, you need to purchase more credits.', 'alttext-ai' ); ?>
+              <?php if ( $account_check_failed ) : ?>
+                <?php if ( $account_error_is_auth ) : ?>
+                  <?php esc_html_e( 'Your API key appears to be invalid. Please update it in Settings before running Bulk Generate.', 'alttext-ai' ); ?>
+                <?php else : ?>
+                  <?php esc_html_e( 'Unable to verify your account. Please check your API key in Settings, or try reloading this page. If the problem persists, your server may be blocking connections to alttext.ai.', 'alttext-ai' ); ?>
+                <?php endif; ?>
+              <?php else : ?>
+                <?php esc_html_e( 'You have no more credits left. To bulk update your library, you need to purchase more credits.', 'alttext-ai' ); ?>
+              <?php endif; ?>
             </p>
           </div>
         </div>
-        <?php if ( $this->account && !$this->account['whitelabel'] ) : ?>
+        <?php if ( $no_credits && $this->account && !$this->account['whitelabel'] ) : ?>
         <div class="ml-4">
-          <a 
-            href="<?php echo esc_url($subscriptions_url); ?>" 
-            target="_blank" 
+          <a
+            href="<?php echo esc_url($subscriptions_url); ?>"
+            target="_blank"
             class="atai-button blue no-underline"
           >
             <?php esc_html_e( 'Purchase Credits', 'alttext-ai' ); ?>

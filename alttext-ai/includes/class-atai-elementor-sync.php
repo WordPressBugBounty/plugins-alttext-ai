@@ -247,8 +247,9 @@ class ATAI_Elementor_Sync {
 
       $widget_type = $element['widgetType'] ?? null;
 
-      // Image widget.
-      if ( $widget_type === 'image' && isset( $element['settings']['image'] ) ) {
+      // Image field — any widget type (image, testimonial, flip-box, slider, etc.)
+      $image_field = $element['settings']['image'] ?? null;
+      if ( is_array( $image_field ) && ( ! empty( $image_field['id'] ) || ! empty( $image_field['url'] ) ) ) {
         if ( $this->apply_alt_to_image_entry( $element['settings']['image'], $resolve_alt ) ) {
           $updated = true;
         }
