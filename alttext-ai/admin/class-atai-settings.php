@@ -372,6 +372,14 @@ class ATAI_Settings {
 
     register_setting(
 			'atai-settings',
+      'atai_wpml_enabled_languages',
+      array(
+        'sanitize_callback' => array( $this, 'sanitize_wpml_enabled_languages' ),
+      )
+    );
+
+    register_setting(
+			'atai-settings',
       'atai_update_title',
       array(
         'sanitize_callback' => array( $this, 'sanitize_yes_no_checkbox' ),
@@ -595,6 +603,173 @@ class ATAI_Settings {
   }
 
   /**
+   * Sanitize the WPML enabled languages array.
+   *
+   * @since 1.10.31
+   * @access public
+   *
+   * @param mixed $input The submitted languages array.
+   * @return array Sanitized array of language codes.
+   */
+  public function sanitize_wpml_enabled_languages( $input ) {
+    if ( null === $input || '' === $input ) {
+      return array();
+    }
+    if ( ! is_array( $input ) ) {
+      return array();
+    }
+    $active_languages = apply_filters( 'wpml_active_languages', NULL );
+    $valid_codes = is_array( $active_languages ) ? array_keys( $active_languages ) : array();
+    $sanitized = array_map( 'sanitize_text_field', $input );
+    $sanitized = array_map( 'trim', $sanitized );
+    $sanitized = array_filter( $sanitized, 'strlen' );
+    $sanitized = array_values( array_unique( $sanitized ) );
+    if ( ! empty( $valid_codes ) ) {
+      $sanitized = array_values( array_intersect( $sanitized, $valid_codes ) );
+    }
+    return $sanitized;
+  }
+
+  /**
+   * Determine whether the current request is saving the plugin settings form.
+   *
+   * @since 1.10.31
+   * @access private
+   *
+   * @return bool
+   */
+  private function is_atai_settings_submission() {
+    return isset( $_POST['option_page'], $_POST['action'] ) &&
+      $_POST['option_page'] === 'atai-settings' &&
+      $_POST['action'] === 'update';
+  }
+
+  /**
+   * Preserve WPML enabled languages when the checklist is not present in the form.
+   *
+   * When the WPML section is hidden (e.g. Polylang-only site), the checkbox array
+   * won't be in $_POST and WordPress would overwrite the value. This hook preserves
+   * the old value unless the sentinel field confirms the checklist was rendered.
+   *
+   * @since 1.10.31
+   * @access public
+   *
+   * @param mixed $value     The new value.
+   * @param mixed $old_value The old value.
+   * @param string $option   The option name.
+   * @return mixed
+   */
+  public function preserve_wpml_enabled_languages( $value, $old_value, $option ) {
+    if ( ! $this->is_atai_settings_submission() ) {
+      return $value;
+    }
+
+    if ( empty( $_POST['atai_wpml_enabled_languages_present'] ) ) {
+      return $old_value;
+    }
+    if ( ! isset( $_POST['atai_wpml_enabled_languages'] ) ) {
+      return array();
+    }
+    return $value;
+  }
+
+  /**
+   * Determine whether this request is running on a subsite with network-wide settings locked.
+   *
+   * @since 1.10.31
+   * @access private
+   *
+   * @return bool
+   */
+  private function is_network_settings_locked_subsite() {
+    return is_multisite() && ! is_main_site() && get_site_option( 'atai_network_all_settings' ) === 'yes';
+  }
+
+  /**
+   * Determine whether the API key is locked on this subsite.
+   *
+   * @since 1.10.31
+   * @access private
+   *
+   * @return bool
+   */
+  private function is_network_api_key_locked_subsite() {
+    return is_multisite() && ! is_main_site() && (
+      get_site_option( 'atai_network_all_settings' ) === 'yes' ||
+      get_site_option( 'atai_network_api_key' ) === 'yes'
+    );
+  }
+
+  /**
+   * Return the settings that should follow network-wide sharing.
+   *
+   * Site-local options are intentionally excluded so subsites can keep their own
+   * runtime state where needed.
+   *
+   * @since 1.10.31
+   * @access private
+   *
+   * @return array
+   */
+  private function get_network_controlled_option_defaults() {
+    return array(
+      'atai_api_key'                => '',
+      'atai_lang'                   => 'en',
+      'atai_model_name'             => '',
+      'atai_force_lang'             => 'no',
+      'atai_update_title'           => 'no',
+      'atai_update_caption'         => 'no',
+      'atai_update_description'     => 'no',
+      'atai_enabled'                => 'yes',
+      'atai_skip_filenotfound'      => 'no',
+      'atai_keywords'               => 'yes',
+      'atai_keywords_title'         => 'no',
+      'atai_ecomm'                  => 'yes',
+      'atai_ecomm_title'            => 'no',
+      'atai_alt_prefix'             => '',
+      'atai_alt_suffix'             => '',
+      'atai_gpt_prompt'             => '',
+      'atai_type_extensions'        => '',
+      'atai_excluded_post_types'    => '',
+      'atai_bulk_refresh_overwrite' => 'no',
+      'atai_bulk_refresh_external'  => 'no',
+      'atai_refresh_src_attr'       => 'src',
+      'atai_wp_generate_metadata'   => 'no',
+      'atai_timeout'                => '20',
+      'atai_public'                 => 'no',
+      'atai_no_credit_warning'      => 'no',
+      'atai_admin_capability'       => 'manage_options',
+    );
+  }
+
+  /**
+   * Prevent subsites from overwriting network-controlled settings.
+   *
+   * @since 1.10.31
+   * @access public
+   *
+   * @param mixed  $value     The new value.
+   * @param string $option    The option name.
+   * @param mixed  $old_value The current value.
+   * @return mixed
+   */
+  public function preserve_network_controlled_setting( $value, $option, $old_value ) {
+    if ( strpos( $option, 'atai_' ) !== 0 ) {
+      return $value;
+    }
+
+    if ( ! $this->is_network_settings_locked_subsite() ) {
+      return $value;
+    }
+
+    if ( ! array_key_exists( $option, $this->get_network_controlled_option_defaults() ) ) {
+      return $value;
+    }
+
+    return $old_value;
+  }
+
+  /**
    * Sanitizes a string with an ensured default if blank.
    *
    * @since 1.9.2
@@ -699,6 +874,10 @@ class ATAI_Settings {
    * @access public
    */
   public function save_api_key( $api_key, $old_api_key ) {
+    if ( $this->is_network_api_key_locked_subsite() ) {
+      return $old_api_key;
+    }
+
     $delete = is_null( $api_key );
 
     if ( $delete ) {
@@ -769,35 +948,9 @@ class ATAI_Settings {
       return;
     }
 
-    // Settings with their defaults - prevents false from being stored for unset options
-    $settings_with_defaults = array(
-      'atai_api_key'              => '',
-      'atai_lang'                 => 'en',
-      'atai_model_name'           => '',
-      'atai_force_lang'           => 'no',
-      'atai_update_title'         => 'no',
-      'atai_update_caption'       => 'no',
-      'atai_update_description'   => 'no',
-      'atai_enabled'              => 'yes',
-      'atai_skip_filenotfound'    => 'no',
-      'atai_keywords'             => 'yes',
-      'atai_keywords_title'       => 'no',
-      'atai_ecomm'                => 'yes',
-      'atai_ecomm_title'          => 'no',
-      'atai_alt_prefix'           => '',
-      'atai_alt_suffix'           => '',
-      'atai_gpt_prompt'           => '',
-      'atai_type_extensions'      => '',
-      'atai_excluded_post_types'  => '',
-      'atai_bulk_refresh_overwrite' => 'no',
-      'atai_bulk_refresh_external'  => 'no',
-      'atai_refresh_src_attr'     => 'src',
-      'atai_wp_generate_metadata' => 'no',
-      'atai_timeout'              => '20',
-      'atai_public'               => 'no',
-      'atai_no_credit_warning'    => 'no',
-      'atai_admin_capability'     => 'manage_options',
-    );
+    // Settings with their defaults - prevents false from being stored for unset options.
+    // Site-local options are intentionally excluded here even when all settings are shared.
+    $settings_with_defaults = $this->get_network_controlled_option_defaults();
 
     // Create a network_settings array with values from the main site (with defaults)
     $network_settings = array();

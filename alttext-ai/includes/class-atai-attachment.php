@@ -1112,14 +1112,102 @@ SQL;
       return;
     }
 
-    // Generate alt text for primary attachment
-    $this->generate_alt( $attachment_id );
+    // Generate alt text for primary attachment (skip if its language is excluded)
+    if ( $this->should_auto_process_wpml_attachment( $attachment_id ) ) {
+      $this->generate_alt( $attachment_id );
+    }
 
-    // Process WPML translations if applicable
+    // Process WPML translations if applicable (has its own language filtering)
     $this->process_wpml_translations( $attachment_id );
 
     // Process Polylang translations if applicable
     $this->process_polylang_translations( $attachment_id );
+  }
+
+  /**
+   * Get the saved WPML language selection for this request.
+   *
+   * @since 1.10.31
+   * @access private
+   *
+   * @return array|null
+   */
+  private function get_wpml_enabled_languages_selection() {
+    $enabled_languages = ATAI_Utility::get_setting( 'atai_wpml_enabled_languages', null );
+
+    return is_array( $enabled_languages ) ? $enabled_languages : null;
+  }
+
+  /**
+   * Filter active WPML languages against the saved per-site selection.
+   *
+   * Falls back to all active languages when the saved selection is stale
+   * (for example, WPML languages were reconfigured after the option was saved).
+   *
+   * @since 1.10.31
+   * @access private
+   *
+   * @param array $active_languages Active WPML languages keyed by language code.
+   * @param bool  $respect_enabled_languages Whether to apply the saved selection.
+   * @return array
+   */
+  private function filter_wpml_active_languages( $active_languages, $respect_enabled_languages = true ) {
+    if ( ! $respect_enabled_languages || ! is_array( $active_languages ) || count( $active_languages ) <= 1 ) {
+      return $active_languages;
+    }
+
+    $enabled_languages = $this->get_wpml_enabled_languages_selection();
+    if ( ! is_array( $enabled_languages ) ) {
+      return $active_languages;
+    }
+
+    if ( empty( $enabled_languages ) ) {
+      return array();
+    }
+
+    $filtered_languages = array_intersect_key( $active_languages, array_flip( $enabled_languages ) );
+    if ( empty( $filtered_languages ) ) {
+      return $active_languages;
+    }
+
+    return $filtered_languages;
+  }
+
+  /**
+   * Determine whether automatic processing should run for this attachment's WPML language.
+   *
+   * Manual single-image generation can still target any attachment directly; this
+   * guard is only for automatic and bulk flows where unchecked languages should
+   * skip the attachment entirely.
+   *
+   * @since 1.10.31
+   * @access private
+   *
+   * @param int $attachment_id Attachment ID.
+   * @return bool
+   */
+  private function should_auto_process_wpml_attachment( $attachment_id ) {
+    if ( ! ATAI_Utility::has_wpml() ) {
+      return true;
+    }
+
+    // If WPML no longer has multiple languages, ignore any stale filter
+    $active_languages = apply_filters( 'wpml_active_languages', null );
+    if ( ! is_array( $active_languages ) || count( $active_languages ) <= 1 ) {
+      return true;
+    }
+
+    $active_languages = $this->filter_wpml_active_languages( $active_languages );
+    if ( empty( $active_languages ) ) {
+      return false;
+    }
+
+    $language_details = apply_filters( 'wpml_post_language_details', null, $attachment_id );
+    if ( ! is_array( $language_details ) || empty( $language_details['language_code'] ) ) {
+      return true;
+    }
+
+    return array_key_exists( $language_details['language_code'], $active_languages );
   }
 
   /**
@@ -1134,6 +1222,12 @@ SQL;
       'skipped'       => 0,
       'processed_ids' => array(),
     );
+    $respect_enabled_languages = true;
+
+    if ( array_key_exists( 'respect_wpml_enabled_languages', $options ) ) {
+      $respect_enabled_languages = ! empty( $options['respect_wpml_enabled_languages'] );
+      unset( $options['respect_wpml_enabled_languages'] );
+    }
 
     if ( ! ATAI_Utility::has_wpml() ) {
       return $results;
@@ -1141,6 +1235,11 @@ SQL;
 
     $active_languages = apply_filters( 'wpml_active_languages', NULL );
     if ( empty( $active_languages ) || ! is_array( $active_languages ) ) {
+      return $results;
+    }
+
+    $active_languages = $this->filter_wpml_active_languages( $active_languages, $respect_enabled_languages );
+    if ( empty( $active_languages ) ) {
       return $results;
     }
 
@@ -1444,6 +1543,9 @@ SQL;
         if ( isset( $final_skip_reasons['generation_failed'] ) && $final_skip_reasons['generation_failed'] > 0 ) {
           $reason_messages[] = sprintf(__('%d generation failures', 'alttext-ai'), $final_skip_reasons['generation_failed']);
         }
+        if ( isset( $final_skip_reasons['wpml_language_filtered'] ) && $final_skip_reasons['wpml_language_filtered'] > 0 ) {
+          $reason_messages[] = sprintf(__('%d skipped by WPML language filter', 'alttext-ai'), $final_skip_reasons['wpml_language_filtered']);
+        }
         
         if ( ! empty( $reason_messages ) ) {
           $subtitle = sprintf(__('Skip reasons: %s', 'alttext-ai'), implode(', ', $reason_messages));
@@ -1520,6 +1622,21 @@ SQL;
           $processed_ids[] = $attachment_id;
         }
         
+        if ( ++$loop_count >= $query_limit ) {
+          break;
+        }
+        continue;
+      }
+
+      if ( ! $this->should_auto_process_wpml_attachment( $attachment_id ) ) {
+        $images_skipped++;
+        $last_post_id = $attachment_id;
+        $skip_reasons['wpml_language_filtered'] = ( $skip_reasons['wpml_language_filtered'] ?? 0 ) + 1;
+
+        if ( $mode === 'bulk-select' ) {
+          $processed_ids[] = $attachment_id;
+        }
+
         if ( ++$loop_count >= $query_limit ) {
           break;
         }
@@ -1703,8 +1820,10 @@ SQL;
     // Generate ALT text
     $this->generate_alt( $attachment_id );
 
-    // Process WPML translations
-    $this->process_wpml_translations( $attachment_id );
+    // Process WPML translations without applying the automatic language filter.
+    $this->process_wpml_translations( $attachment_id, array(
+      'respect_wpml_enabled_languages' => false,
+    ) );
 
     // Process Polylang translations
     $this->process_polylang_translations( $attachment_id );
@@ -1767,7 +1886,8 @@ SQL;
     if ( ! is_array( $response ) && $response !== false ) {
       // Process WPML translations for successfully generated primary image
       $wpml_results = $this->process_wpml_translations( $attachment_id, array(
-        'keywords' => $keywords,
+        'keywords'                       => $keywords,
+        'respect_wpml_enabled_languages' => false,
       ) );
 
       // Process Polylang translations for successfully generated primary image
@@ -2495,6 +2615,14 @@ SQL;
         $attachment_id = absint( $image->post_id );
 
         if ( ! $this->is_attachment_eligible( $attachment_id, 'network-bulk' ) ) {
+          $last_post_id = $attachment_id;
+          if ( ++$loop_count >= $query_limit ) {
+            break;
+          }
+          continue;
+        }
+
+        if ( ! $this->should_auto_process_wpml_attachment( $attachment_id ) ) {
           $last_post_id = $attachment_id;
           if ( ++$loop_count >= $query_limit ) {
             break;

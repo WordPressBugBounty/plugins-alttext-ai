@@ -1,5 +1,9 @@
 *** AltText.ai Changelog ***
 
+2026-03-16 - version 1.10.31
+* NEW: WPML language filter — choose which languages auto-generate alt text
+* Improved: Network-controlled settings guard prevents subsites from overwriting shared options
+
 2026-03-06 - version 1.10.30
 * Fixed: API key check timeout
 

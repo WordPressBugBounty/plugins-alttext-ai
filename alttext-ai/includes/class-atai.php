@@ -213,6 +213,8 @@ class ATAI {
     $this->loader->add_action( 'wp_ajax_atai_update_public_setting', $settings, 'ajax_update_public_setting' );
 
     $this->loader->add_filter( 'pre_update_option_atai_api_key', $settings, 'save_api_key', 10, 2 );
+    $this->loader->add_filter( 'pre_update_option_atai_wpml_enabled_languages', $settings, 'preserve_wpml_enabled_languages', 10, 3 );
+    $this->loader->add_filter( 'pre_update_option', $settings, 'preserve_network_controlled_setting', 10, 3 );
     $this->loader->add_filter( 'option_page_capability_atai-settings', $settings, 'filter_settings_capability' );
 
     // Network Bulk Generate

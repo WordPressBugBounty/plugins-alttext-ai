@@ -36,6 +36,13 @@
 
   // API key is locked when either network API key OR all settings are shared
   $api_key_locked = $is_multisite && ! $is_main_site && ( $network_controls_api_key || $network_controls_all_settings );
+
+  $show_force_lang_toggle = ATAI_Utility::has_multiple_languages();
+  $show_wpml_language_selector = $show_force_lang_toggle && ATAI_Utility::has_wpml();
+  $wpml_active_languages = $show_wpml_language_selector ? apply_filters( 'wpml_active_languages', null ) : array();
+  $show_wpml_language_selector = $show_wpml_language_selector && is_array( $wpml_active_languages ) && count( $wpml_active_languages ) > 1;
+  $enabled_languages = $show_wpml_language_selector ? ATAI_Utility::get_setting( 'atai_wpml_enabled_languages', null ) : null;
+  $show_local_wpml_save = $settings_network_controlled && $show_wpml_language_selector;
 ?>
 
 <?php
@@ -141,8 +148,8 @@
     <?php settings_fields( 'atai-settings' ); ?>
     <?php do_settings_sections( 'atai-settings' ); ?>
 
-    <?php if ( ! $settings_network_controlled ) : ?>
-      <input type="submit" name="submit" value="Save Changes" class="atai-button blue mt-4 cursor-pointer appearance-none no-underline shadow-sm">
+    <?php if ( ! $settings_network_controlled || $show_local_wpml_save ) : ?>
+      <input type="submit" name="submit" value="<?php echo esc_attr( $show_local_wpml_save ? __( 'Save Language Selection', 'alttext-ai' ) : __( 'Save Changes', 'alttext-ai' ) ); ?>" class="atai-button blue mt-4 cursor-pointer appearance-none no-underline shadow-sm <?php echo $show_local_wpml_save ? 'atai-local-setting-submit' : ''; ?>">
     <?php endif; ?>
     <div class="mt-4 space-y-4 border-b-0 border-t border-solid divide-x-0 divide-y divide-solid sm:space-y-6 border-x-0 border-gray-900/10 divide-gray-900/10">
       <div class="">
@@ -261,7 +268,7 @@
                   }
                 ?>
               </select>
-              <?php if ( ATAI_Utility::has_polylang() || ATAI_Utility::has_wpml() ) : ?>
+              <?php if ( $show_force_lang_toggle ) : ?>
                 <div class="ml-2 mt-4 flex relative gap-x-3">
                   <div class="flex items-center h-6">
                     <input
@@ -276,6 +283,44 @@
                   <div class="-mt-1 text-sm leading-6">
                     <label for="atai_force_lang" class="text-gray-600"><?php esc_html_e( 'Always use this language, even if translations exist.', 'alttext-ai' ); ?></label>
                   </div>
+                </div>
+              <?php elseif ( ATAI_Utility::has_polylang() || ATAI_Utility::has_wpml() ) : ?>
+                <input type="hidden" name="atai_force_lang" value="<?php echo esc_attr( ATAI_Utility::get_setting( 'atai_force_lang', 'no' ) ); ?>">
+              <?php endif; ?>
+
+              <?php if ( $show_wpml_language_selector ) : ?>
+                <div class="ml-2 mt-4">
+                  <input type="hidden" name="atai_wpml_enabled_languages_present" value="1">
+                  <p class="text-sm font-medium text-gray-700 mb-2"><?php esc_html_e( 'Generate alt text for these WPML languages:', 'alttext-ai' ); ?></p>
+                  <?php if ( $show_local_wpml_save ) : ?>
+                    <p class="mb-2 text-xs text-gray-500"><?php esc_html_e( 'This language filter is saved per site even when other settings are managed network-wide.', 'alttext-ai' ); ?></p>
+                  <?php endif; ?>
+                  <?php foreach ( $wpml_active_languages as $code => $lang_info ) :
+                    $is_checked = ( null === $enabled_languages ) || in_array( $code, (array) $enabled_languages, true );
+                  ?>
+                  <div class="flex items-center gap-x-2 mb-1">
+                    <input
+                      type="checkbox"
+                      id="atai_wpml_lang_<?php echo esc_attr( $code ); ?>"
+                      name="atai_wpml_enabled_languages[]"
+                      value="<?php echo esc_attr( $code ); ?>"
+                      class="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-600"
+                      <?php checked( $is_checked ); ?>
+                    >
+                    <label for="atai_wpml_lang_<?php echo esc_attr( $code ); ?>" class="text-sm text-gray-600">
+                      <?php
+                        echo esc_html( $lang_info['native_name'] );
+                        if ( ! empty( $lang_info['translated_name'] ) && $lang_info['translated_name'] !== $lang_info['native_name'] ) {
+                          echo ' (' . esc_html( $lang_info['translated_name'] ) . ')';
+                        }
+                      ?>
+                    </label>
+                  </div>
+                  <?php endforeach; ?>
+                  <p class="mt-1 text-xs text-gray-500"><?php esc_html_e( 'Unchecked languages will be skipped when auto-generating translations.', 'alttext-ai' ); ?></p>
+                  <?php if ( ATAI_Utility::get_setting( 'atai_force_lang' ) === 'yes' ) : ?>
+                    <p class="mt-1 text-xs text-amber-600"><?php esc_html_e( 'Note: "Always use this language" is enabled, so all translations will use the selected language above.', 'alttext-ai' ); ?></p>
+                  <?php endif; ?>
                 </div>
               <?php endif; ?>
             </div>
@@ -831,8 +876,8 @@
     </div>
 
     <div class="atai-settings-footer">
-      <?php if ( ! $settings_network_controlled ) : ?>
-        <input type="submit" name="submit" value="Save Changes" class="atai-button blue cursor-pointer appearance-none no-underline shadow-sm">
+      <?php if ( ! $settings_network_controlled || $show_local_wpml_save ) : ?>
+        <input type="submit" name="submit" value="<?php echo esc_attr( $show_local_wpml_save ? __( 'Save Language Selection', 'alttext-ai' ) : __( 'Save Changes', 'alttext-ai' ) ); ?>" class="atai-button blue cursor-pointer appearance-none no-underline shadow-sm <?php echo $show_local_wpml_save ? 'atai-local-setting-submit' : ''; ?>">
       <?php endif; ?>
       <span class="atai-version">v<?php echo esc_html( ATAI_VERSION ); ?></span>
     </div>
@@ -847,6 +892,9 @@
     if (form) {
       const inputs = form.querySelectorAll('input:not([type="hidden"]), select, textarea');
       inputs.forEach(function(input) {
+        if (input.matches('input[name="atai_wpml_enabled_languages[]"], .atai-local-setting-submit')) {
+          return;
+        }
         input.disabled = true;
       });
     }

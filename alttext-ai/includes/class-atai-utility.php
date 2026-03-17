@@ -288,6 +288,29 @@ SQL;
 	}
 
   /**
+   * Determine if multiple languages are configured in WPML or Polylang.
+   *
+   * Only returns true when WPML/Polylang is active AND has 2+ languages set up.
+   * Used to conditionally show the "force language" checkbox on the settings page.
+   *
+   * @since    1.10.31
+   * @access public
+   */
+  public static function has_multiple_languages() {
+    if ( self::has_wpml() ) {
+      $active_languages = apply_filters( 'wpml_active_languages', NULL );
+      return is_array( $active_languages ) && count( $active_languages ) > 1;
+    }
+
+    if ( self::has_polylang() && function_exists( 'pll_languages_list' ) ) {
+      $active_languages = pll_languages_list();
+      return is_array( $active_languages ) && count( $active_languages ) > 1;
+    }
+
+    return false;
+  }
+
+  /**
    * Determine if SmartCrawl is installed/active.
    *
    * @since 1.9.91
@@ -391,6 +414,12 @@ SQL;
    * @return mixed The option value or default.
    */
   public static function get_setting( $option_name, $default = false ) {
+    // WPML language selections are site-local even when network settings are shared,
+    // because each site can have a different active language set.
+    if ( $option_name === 'atai_wpml_enabled_languages' ) {
+      return get_option( $option_name, $default );
+    }
+
     // If not multisite, just get the regular option
     if ( ! is_multisite() ) {
       return get_option( $option_name, $default );

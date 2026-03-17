@@ -5,7 +5,7 @@ Tags: image alt text, AI,  accessibility, alternative text, image to text
 Requires PHP: 7.4
 Requires at least: 4.7
 Tested up to: 6.9
-Stable tag: 1.10.30
+Stable tag: 1.10.31
 WC requires at least: 3.3
 WC tested up to: 10.1
 License: GPLv2 or later
