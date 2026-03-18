@@ -688,9 +688,10 @@ class ATAI_Post {
       $attachment_id = $this->resolve_attachment_id( $tags, $home_url );
       if ( $attachment_id ) {
         $bookmark = 'img_' . $bookmark_index;
-        $tags->set_bookmark( $bookmark );
-        $pending[ $bookmark ] = $attachment_id;
-        $bookmark_index++;
+        if ( $tags->set_bookmark( $bookmark ) ) {
+          $pending[ $bookmark ] = $attachment_id;
+          $bookmark_index++;
+        }
       }
     }
 
