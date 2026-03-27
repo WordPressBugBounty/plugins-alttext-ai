@@ -5,7 +5,7 @@ Tags: image alt text, AI,  accessibility, alternative text, image to text
 Requires PHP: 7.4
 Requires at least: 4.7
 Tested up to: 6.9
-Stable tag: 1.10.32
+Stable tag: 1.10.33
 WC requires at least: 3.3
 WC tested up to: 10.1
 License: GPLv2 or later
@@ -70,6 +70,9 @@ Added support for SEOPress keywords.
 We now integrate Yoast, AllInOne, and RankMath focus keyphrases for alt text.
 
 == Changelog ==
+
+= 1.10.33 - 2026-03-25 =
+* NEW: YOOtheme Pro page builder support — alt text now syncs correctly on YOOtheme-built pages
 
 = 1.10.30 - 2026-03-06 =
 * Fixed: Account verification timeout causing false "no credits" and "invalid API key" errors on slower hosts

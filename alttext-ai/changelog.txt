@@ -1,5 +1,8 @@
 *** AltText.ai Changelog ***
 
+2026-03-25 - version 1.10.33
+* NEW: YOOtheme Pro page builder support — alt text now syncs correctly on YOOtheme-built pages
+
 2026-03-18 - version 1.10.32
 * Fixed: Check bookmark success before seeking in page builder alt text pass, preventing excessive PHP notices in debug.log
 

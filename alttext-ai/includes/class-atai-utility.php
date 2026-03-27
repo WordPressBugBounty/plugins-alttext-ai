@@ -175,6 +175,14 @@ SQL;
       return null;
     }
 
+    // Convert builder-relative paths (wp-content/..., images/...) to absolute URLs
+    if ( substr( $src, 0, 10 ) === 'wp-content' || substr( $src, 0, 7 ) === 'images/' ) {
+      if ( strpos( $src, '..' ) !== false ) {
+        return null;
+      }
+      $src = trailingslashit( $home_url ) . $src;
+    }
+
     if ( substr( $src, 0, 1 ) === '/' && substr( $src, 0, 2 ) !== '//' ) {
       $src = $home_url . $src;
     } elseif ( substr( $src, 0, 2 ) === '//' ) {

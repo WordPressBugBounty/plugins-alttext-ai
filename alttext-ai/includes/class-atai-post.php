@@ -474,10 +474,19 @@ class ATAI_Post {
       $total_images_found += $product_response['total_images_found'];
       $num_alttext_generated += $product_response['num_alttext_generated'];
     }
-    
+
+    // Process page builder images (YOOtheme, etc.)
+    $builder_response = $this->process_builder_images( $post_id, $overwrite, $process_external, $keywords );
+    $total_images_found += $builder_response['total_images_found'];
+    $num_alttext_generated += $builder_response['num_alttext_generated'];
+    if ( $builder_response['no_credits'] ) {
+      $no_credits = true;
+    }
+
     ATAI_Elementor_Sync::$paused = false;
 
-    if ( !empty($updated_content) ) {
+    // Skip HTML content update if a builder already saved post_content
+    if ( !empty($updated_content) && ! $builder_response['saved_post_content'] ) {
       wp_update_post( array(
         'ID' => $post_id,
         'post_content' => str_replace('\\', '\\\\', $updated_content),
@@ -509,6 +518,121 @@ class ATAI_Post {
       'total_images_found' => $total_images_found,
       'num_alttext_generated' => $num_alttext_generated,
       'no_credits' => $no_credits,
+    );
+  }
+
+  /**
+   * Process images in page builder content.
+   *
+   * Iterates registered builder handlers, extracts images from their data,
+   * generates alt text, and updates the builder's stored content.
+   *
+   * @since  1.10.33
+   * @param  int   $post_id
+   * @param  bool  $overwrite
+   * @param  bool  $process_external
+   * @param  array $keywords
+   * @return array
+   */
+  private function process_builder_images( $post_id, $overwrite, $process_external, $keywords ) {
+    $handlers = apply_filters( 'atai_page_builder_handlers', array(
+      'yootheme' => 'ATAI_Builder_YooTheme',
+    ) );
+
+    $total_images_found = 0;
+    $num_alttext_generated = 0;
+    $no_credits = false;
+    $saved_post_content = false;
+    $atai_attachment = new ATAI_Attachment();
+
+    foreach ( $handlers as $key => $handler_class ) {
+      if ( ! class_exists( $handler_class ) ) {
+        continue;
+      }
+
+      if ( ! method_exists( $handler_class, 'is_active' ) || ! $handler_class::is_active() ) {
+        continue;
+      }
+
+      // Validate handler implements the full contract before instantiation
+      $required_methods = array( 'has_builder_content', 'extract_images', 'update_image_alt', 'save', 'uses_post_content' );
+      $valid = true;
+      foreach ( $required_methods as $method ) {
+        if ( ! method_exists( $handler_class, $method ) ) {
+          $valid = false;
+          break;
+        }
+      }
+      if ( ! $valid ) {
+        continue;
+      }
+
+      $handler = new $handler_class();
+
+      if ( ! $handler->has_builder_content( $post_id ) ) {
+        continue;
+      }
+
+      $images = $handler->extract_images( $post_id );
+      $handler_modified = false;
+
+      foreach ( $images as $image ) {
+        $total_images_found++;
+        $alt_text = false;
+        $should_generate = false;
+
+        if ( $image['attachment_id'] ) {
+          $alt_text = get_post_meta( $image['attachment_id'], '_wp_attachment_image_alt', true );
+
+          if ( $overwrite || empty( $alt_text ) ) {
+            $should_generate = true;
+            $alt_text = $atai_attachment->generate_alt( $image['attachment_id'], null, array( 'keywords' => $keywords ) );
+          }
+        } elseif ( $process_external ) {
+          $alt_text = $image['current_alt'];
+
+          if ( $overwrite || empty( $alt_text ) ) {
+            $should_generate = true;
+            $alt_text = $atai_attachment->generate_alt( null, $image['url'], array( 'keywords' => $keywords ) );
+          }
+        }
+
+        if ( empty( $alt_text ) || ! is_string( $alt_text ) ) {
+          continue;
+        }
+
+        if ( $alt_text === 'insufficient_credits' ) {
+          $no_credits = true;
+          break;
+        }
+
+        if ( $should_generate ) {
+          $num_alttext_generated++;
+        }
+
+        // Update alt text in builder data (even if not newly generated,
+        // sync the media library alt text into the builder)
+        if ( $handler->update_image_alt( $post_id, $image['ref'], $alt_text ) ) {
+          $handler_modified = true;
+        }
+      }
+
+      if ( $handler_modified ) {
+        if ( $handler->save( $post_id ) && $handler->uses_post_content() ) {
+          $saved_post_content = true;
+        }
+      }
+
+      if ( $no_credits ) {
+        break;
+      }
+    }
+
+    return array(
+      'total_images_found'    => $total_images_found,
+      'num_alttext_generated' => $num_alttext_generated,
+      'no_credits'            => $no_credits,
+      'saved_post_content'    => $saved_post_content,
     );
   }
 
