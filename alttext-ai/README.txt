@@ -5,7 +5,7 @@ Tags: image alt text, AI,  accessibility, alternative text, image to text
 Requires PHP: 7.4
 Requires at least: 4.7
 Tested up to: 6.9
-Stable tag: 1.10.33
+Stable tag: 1.10.34
 WC requires at least: 3.3
 WC tested up to: 10.1
 License: GPLv2 or later
@@ -70,6 +70,10 @@ Added support for SEOPress keywords.
 We now integrate Yoast, AllInOne, and RankMath focus keyphrases for alt text.
 
 == Changelog ==
+
+= 1.10.34 - 2026-04-21 =
+* Fixed: Refresh Alt Text now works on YOOtheme Pro pages built with recent YOOtheme versions.
+* Fixed: Chinese (Simplified) and Chinese (Traditional) alt text now generate correctly on WPML and Polylang sites. Previously both were falling back to English.
 
 = 1.10.33 - 2026-03-25 =
 * NEW: YOOtheme Pro page builder support — alt text now syncs correctly on YOOtheme-built pages

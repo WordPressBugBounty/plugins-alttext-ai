@@ -395,6 +395,10 @@ SQL;
     }
 
     // Ensure we can translate this language
+    // WPML/Polylang may emit mixed-case codes (e.g., "zh-CN"); normalize to match map keys.
+    if ( isset( $language ) && is_string( $language ) ) {
+      $language = strtolower( $language );
+    }
     if ( isset($language) && ! array_key_exists( $language, ATAI_Utility::supported_languages() ) ) {
       $language = NULL;
     }
@@ -575,8 +579,8 @@ SQL;
       "bg" => "Bulgarian",
       "ca" => "Catalan",
       "ceb" => "Cebuano",
-      "zh-CN" => "Chinese (Simplified)",
-      "zh-TW" => "Chinese (Traditional)",
+      "zh-cn" => "Chinese (Simplified)",
+      "zh-tw" => "Chinese (Traditional)",
       "co" => "Corsican",
       "hr" => "Croatian",
       "cs" => "Czech",
@@ -639,7 +643,7 @@ SQL;
       "mt" => "Maltese",
       "mi" => "Maori",
       "mr" => "Marathi",
-      "mni-Mtei" => "Meiteilon (Manipuri)",
+      "mni-mtei" => "Meiteilon (Manipuri)",
       "lus" => "Mizo",
       "mn" => "Mongolian",
       "my" => "Myanmar (Burmese)",

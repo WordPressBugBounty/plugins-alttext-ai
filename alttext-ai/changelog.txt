@@ -1,5 +1,9 @@
 *** AltText.ai Changelog ***
 
+2026-04-21 - version 1.10.34
+* Fixed: Refresh Alt Text now works on YOOtheme Pro pages built with recent YOOtheme versions.
+* Fixed: Chinese (Simplified) and Chinese (Traditional) alt text now generate correctly on WPML and Polylang sites. Previously both were falling back to English.
+
 2026-03-25 - version 1.10.33
 * NEW: YOOtheme Pro page builder support — alt text now syncs correctly on YOOtheme-built pages
 

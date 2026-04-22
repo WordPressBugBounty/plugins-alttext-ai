@@ -46,8 +46,14 @@
 ?>
 
 <?php
-  $lang = ATAI_Utility::get_setting( 'atai_lang', ATAI_Utility::get_default_language() );
   $supported_languages = ATAI_Utility::supported_languages();
+  $lang = ATAI_Utility::get_setting( 'atai_lang', ATAI_Utility::get_default_language() );
+  if ( is_string( $lang ) ) {
+    $lang = strtolower( str_replace( '_', '-', trim( $lang ) ) );
+  }
+  if ( ! is_string( $lang ) || ! array_key_exists( $lang, $supported_languages ) ) {
+    $lang = ATAI_Utility::get_default_language();
+  }
   $ai_model_name = ATAI_Utility::get_setting( 'atai_model_name' );
   $supported_models = ATAI_Utility::supported_model_names();
   $timeout_secs = intval(ATAI_Utility::get_setting( 'atai_timeout', 20 ));
