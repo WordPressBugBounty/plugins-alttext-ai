@@ -69,6 +69,12 @@ class ATAI_Attachment {
     // Normalize: lowercase and trim (preserves region codes)
     $lang = strtolower( trim( $lang ) );
 
+    // Resolve BCP-47 aliases (e.g., zh-hans → zh-cn) before the supported map lookup.
+    $aliases = ATAI_Utility::bcp47_aliases();
+    if ( isset( $aliases[ $lang ] ) ) {
+      $lang = $aliases[ $lang ];
+    }
+
     // Perfect match - use as-is
     if ( isset( $supported_languages[ $lang ] ) ) {
       return $lang;

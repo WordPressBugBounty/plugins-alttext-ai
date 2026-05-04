@@ -399,6 +399,13 @@ SQL;
     if ( isset( $language ) && is_string( $language ) ) {
       $language = strtolower( $language );
     }
+    // Resolve BCP-47 aliases (e.g., zh-hans → zh-cn) before checking the supported map.
+    if ( isset( $language ) ) {
+      $aliases = self::bcp47_aliases();
+      if ( isset( $aliases[ $language ] ) ) {
+        $language = $aliases[ $language ];
+      }
+    }
     if ( isset($language) && ! array_key_exists( $language, ATAI_Utility::supported_languages() ) ) {
       $language = NULL;
     }
@@ -552,6 +559,41 @@ SQL;
 
     // Fallback to English
     return 'en';
+  }
+
+  /**
+   * BCP-47 / variant alias map: raw codes → canonical codes accepted by the API.
+   *
+   * Applied in lang_for_attachment() and normalize_lang() before the supported_languages()
+   * lookup. All keys must be lowercase (enforced by test_bcp47_aliases_map_keys_are_all_lowercase).
+   *
+   * @since    1.10.35
+   * @access   public
+   */
+  public static function bcp47_aliases() {
+    return array(
+      // Chinese — WPML modern BCP-47 codes
+      'zh-hans'    => 'zh-cn',
+      'zh-hant'    => 'zh-tw',
+      'zh'         => 'zh-cn',
+      // Chinese — underscore variants (some WPML/PHP configs)
+      'zh_cn'      => 'zh-cn',
+      'zh_tw'      => 'zh-tw',
+      // Chinese — redundant multi-subtag codes seen in some WPML setups
+      'zh-hans-cn' => 'zh-cn',
+      'zh-hant-tw' => 'zh-tw',
+      // Chinese — regional Traditional variants → Traditional
+      'zh-hant-hk' => 'zh-tw',
+      'zh-hant-mo' => 'zh-tw',
+      // Chinese — Singapore Simplified
+      'zh-sg'      => 'zh-cn',
+      // Portuguese — underscore variants
+      'pt_pt'      => 'pt-pt',
+      'pt_br'      => 'pt',
+      // English — underscore variants
+      'en_gb'      => 'en-gb',
+      'en_us'      => 'en',
+    );
   }
 
   /**
