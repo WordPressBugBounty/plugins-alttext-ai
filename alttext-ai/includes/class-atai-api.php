@@ -75,7 +75,8 @@ class ATAI_API {
         'headers'       => array(
           'Content-Type'  => 'application/json',
           'X-Api-Key'     => $this->api_key,
-          'X-Client'      => 'wordpress/' . ATAI_VERSION
+          'X-Client'      => 'wordpress/' . ATAI_VERSION,
+          'X-Site-Url'    => home_url()
         ),
         'timeout'       => 15
       )
@@ -207,7 +208,8 @@ class ATAI_API {
         'headers'       => array(
           'Content-Type'  => 'application/json',
           'X-Api-Key'     => $this->api_key,
-          'X-Client'      => 'wordpress/' . ATAI_VERSION
+          'X-Client'      => 'wordpress/' . ATAI_VERSION,
+          'X-Site-Url'    => home_url()
         ),
         'timeout' => $timeout_secs,
         'body'          => wp_json_encode( $body )

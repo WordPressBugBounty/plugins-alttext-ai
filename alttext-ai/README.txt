@@ -5,7 +5,7 @@ Tags: image alt text, AI,  accessibility, alternative text, image to text
 Requires PHP: 7.4
 Requires at least: 4.7
 Tested up to: 6.9
-Stable tag: 1.10.35
+Stable tag: 1.10.36
 WC requires at least: 3.3
 WC tested up to: 10.1
 License: GPLv2 or later
@@ -37,6 +37,8 @@ AltText.ai automatically generates alt text for your images.
 **Review and Edit:** See what was processed and manually edit the generated alt text if desired.
 
 **Try for FREE:** No credit card needed to start on a trial plan.
+
+**External service:** This plugin relies on the AltText.ai API (https://alttext.ai) to generate alt text. When generating alt text, your image and your site's URL are sent to the AltText.ai API. See the [terms of use](https://alttext.ai/terms) and [privacy policy](https://alttext.ai/privacy).
 
 == Demo Video ==
 https://youtu.be/LpMXPbMds4U
@@ -70,6 +72,10 @@ Added support for SEOPress keywords.
 We now integrate Yoast, AllInOne, and RankMath focus keyphrases for alt text.
 
 == Changelog ==
+
+= 1.10.36 - 2026-07-22 =
+* NEW: Connect to AltText.ai in one click — link your account from the settings page without copying and pasting an API key.
+* Fixed: On Polylang sites, images auto-generated on upload now get alt text in the correct language instead of falling back to the site default.
 
 = 1.10.35 - 2026-05-04 =
 * Fixed: WPML sites using modern BCP-47 codes (zh-Hans, zh-Hant, zh-SG, zh-Hant-HK, etc.) now generate Chinese alt text correctly instead of falling back to English. Also covers underscore variants (pt_PT, pt_BR, en_GB, en_US).

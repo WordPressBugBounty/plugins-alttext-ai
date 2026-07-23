@@ -127,6 +127,16 @@ class ATAI {
 		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-atai-api.php';
 
     /**
+		 * The class responsible for initiating the AltText.ai connect handshake.
+		 */
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-atai-connect-service.php';
+
+    /**
+		 * The class responsible for completing the AltText.ai connect handshake.
+		 */
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-atai-connect-callback-handler.php';
+
+    /**
 		 * The class responsible for attachment handling.
 		 */
 		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-atai-attachment.php';
@@ -187,12 +197,14 @@ class ATAI {
 	 * @access   private
 	 */
 	private function define_admin_hooks() {
-		$database        = new ATAI_Database();
-		$admin           = new ATAI_Admin( $this->get_plugin_name(), $this->get_version() );
-		$settings        = new ATAI_Settings( $this->get_version() );
-		$attachment      = new ATAI_Attachment();
-		$post            = new ATAI_Post();
-		$elementor_sync  = new ATAI_Elementor_Sync();
+		$database         = new ATAI_Database();
+		$admin            = new ATAI_Admin( $this->get_plugin_name(), $this->get_version() );
+		$settings         = new ATAI_Settings( $this->get_version() );
+		$attachment       = new ATAI_Attachment();
+		$post             = new ATAI_Post();
+		$elementor_sync   = new ATAI_Elementor_Sync();
+		$connect_service  = new ATAI_Connect_Service();
+		$connect_callback = new ATAI_Connect_Callback_Handler();
 
     // Database
     $this->loader->add_action( 'plugins_loaded', $database, 'check_database_schema' );
@@ -219,6 +231,12 @@ class ATAI {
     $this->loader->add_filter( 'pre_update_option_atai_wpml_enabled_languages', $settings, 'preserve_wpml_enabled_languages', 10, 3 );
     $this->loader->add_filter( 'pre_update_option', $settings, 'preserve_network_controlled_setting', 10, 3 );
     $this->loader->add_filter( 'option_page_capability_atai-settings', $settings, 'filter_settings_capability' );
+
+    // Connect to AltText.ai
+    $this->loader->add_action( 'admin_init', $connect_service, 'initiate_connect' );
+    $this->loader->add_action( 'admin_notices', $connect_service, 'display_connect_success_notice' );
+    $this->loader->add_action( 'admin_init', $connect_callback, 'handle_callback' );
+    $this->loader->add_action( 'admin_notices', $connect_callback, 'display_connect_failure_notice' );
 
     // Network Bulk Generate
     $this->loader->add_action( 'network_admin_menu', $settings, 'register_network_bulk_generate_page' );

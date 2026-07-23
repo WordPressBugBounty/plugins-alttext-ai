@@ -336,8 +336,23 @@ SQL;
    * @access public
    *
    * @param integer $attachment_id  ID of the attachment
+   *
+   * @changed 2026-07-16 Prefer Polylang's runtime API (pll_get_post_language) over the
+   *                     term-relationship SQL to fix an upload-time race: on the
+   *                     add_attachment hook the language term may not be persisted yet
+   *                     (e.g. Connect Polylang for Elementor), so the SQL returns nothing
+   *                     and alt text falls back to the site default language.
 	 */
   public static function polylang_lang_for_attachment( $attachment_id ) {
+    // Polylang's runtime API knows the language assigned during the current request
+    // even before the term relationship is written to the DB.
+    if ( function_exists( 'pll_get_post_language' ) ) {
+      $language = pll_get_post_language( $attachment_id );
+      if ( ! empty( $language ) ) {
+        return $language;
+      }
+    }
+
     global $wpdb;
     $language_sql = <<<SQL
 select terms.slug

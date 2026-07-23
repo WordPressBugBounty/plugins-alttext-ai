@@ -1,5 +1,9 @@
 *** AltText.ai Changelog ***
 
+2026-07-22 - version 1.10.36
+* NEW: Connect to AltText.ai in one click — link your account from the settings page without copying and pasting an API key.
+* Fixed: On Polylang sites, images auto-generated on upload now get alt text in the correct language instead of falling back to the site default.
+
 2026-05-04 - version 1.10.35
 * Fixed: WPML sites using modern BCP-47 codes (zh-Hans, zh-Hant, zh-SG, zh-Hant-HK, etc.) now generate Chinese alt text correctly instead of falling back to English. Also covers underscore variants (pt_PT, pt_BR, en_GB, en_US).
 

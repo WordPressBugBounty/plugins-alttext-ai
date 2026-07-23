@@ -257,6 +257,25 @@
             </div>
           </div>
 
+          <?php if ( ! ATAI_Utility::get_api_key() ) : ?>
+          <div class="sm:grid sm:grid-cols-3 sm:gap-4 sm:items-start sm:py-4">
+            <label class="block text-sm font-medium leading-6 text-gray-900 sm:pt-1.5"><?php esc_html_e( 'Connect Account', 'alttext-ai' ); ?></label>
+            <div class="mt-2 sm:col-span-2 sm:mt-0">
+              <a
+                href="<?php echo esc_url( ATAI_Connect_Service::get_connect_url() ); ?>"
+                class="atai-button blue relative no-underline cursor-pointer shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 whitespace-nowrap"
+              ><?php esc_html_e( 'Connect to AltText.ai', 'alttext-ai' ); ?></a>
+              <div class="mt-4 max-w-lg">
+                <div class="bg-gray-900/15 p-px rounded-lg">
+                  <p class="py-2 px-4 leading-relaxed bg-gray-100 rounded-lg sm:p-4 m-0">
+                  <?php esc_html_e( 'Connect your AltText.ai account without leaving WordPress.', 'alttext-ai' ); ?>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <?php endif; ?>
+
           <div class="sm:grid sm:grid-cols-3 sm:gap-4 sm:items-start sm:py-4">
             <label for="atai_lang" class="block text-sm font-medium leading-6 text-gray-900 sm:pt-1.5"><?php esc_html_e( 'Alt Text Language', 'alttext-ai' ); ?></label>
             <div class="mt-2 sm:col-span-2 sm:mt-0">
