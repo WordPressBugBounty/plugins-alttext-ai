@@ -268,12 +268,14 @@ class ATAI_Attachment {
     $alt_prefix = ATAI_Utility::get_setting('atai_alt_prefix');
     $alt_suffix = ATAI_Utility::get_setting('atai_alt_suffix');
 
+    $affix_separator = ATAI_Utility::get_setting( 'atai_alt_affix_no_space' ) === 'yes' ? '' : ' ';
+
     if ( ! empty( $alt_prefix ) ) {
-      $alt_text = trim( $alt_prefix ) . ' ' . $alt_text;
+      $alt_text = trim( $alt_prefix ) . $affix_separator . $alt_text;
     }
 
     if ( ! empty( $alt_suffix ) ) {
-      $alt_text = $alt_text . ' ' . trim( $alt_suffix );
+      $alt_text = $alt_text . $affix_separator . trim( $alt_suffix );
     }
 
     ATAI_Utility::record_atai_asset($attachment_id, $response['asset_id']);
@@ -2169,7 +2171,7 @@ SQL;
     $handle = fopen( $filename, "r" );
 
     // Read the first row as header
-    $header = fgetcsv( $handle, ATAI_CSV_LINE_LENGTH, ',', '"' );
+    $header = fgetcsv( $handle, ATAI_CSV_LINE_LENGTH, ',', '"', '' );
 
     // Check if the required columns exist and capture their indexes
     $asset_id_index = array_search( 'asset_id', $header );
@@ -2215,7 +2217,7 @@ SQL;
     }
 
     // Loop through the rest of the rows and use the captured indexes to get the values
-    while ( ( $data = fgetcsv( $handle, 1000, ',', '"' ) ) !== FALSE ) {
+    while ( ( $data = fgetcsv( $handle, 1000, ',', '"', '' ) ) !== FALSE ) {
       global $wpdb;
 
       $asset_id = $data[ $asset_id_index ];
@@ -2374,7 +2376,7 @@ SQL;
       return $languages;
     }
 
-    $header = fgetcsv( $handle, ATAI_CSV_LINE_LENGTH, ',', '"' );
+    $header = fgetcsv( $handle, ATAI_CSV_LINE_LENGTH, ',', '"', '' );
     fclose( $handle );
 
     if ( ! $header ) {

@@ -1,5 +1,12 @@
 *** AltText.ai Changelog ***
 
+2026-08-19 - version 1.10.37
+* NEW: Option to remove the space between your custom prefix/suffix and the generated alt text, so you can wrap alt text in parentheses or brackets.
+* NEW: The Generate button now appears in WordPress's "Image details" panel - the one that opens when you click an image already placed in a post and hit the pencil icon.
+* Improved: The "file not found" setting is now labeled to match what it does. These images are always skipped; the checkbox controls whether each one is recorded in the error log.
+* Improved: Connect to AltText.ai now appears above the API key field on the settings page, so the one-click option comes first.
+* Fixed: The History screen no longer reports "Updated!" when a save actually failed.
+
 2026-07-22 - version 1.10.36
 * NEW: Connect to AltText.ai in one click — link your account from the settings page without copying and pasting an API key.
 * Fixed: On Polylang sites, images auto-generated on upload now get alt text in the correct language instead of falling back to the site default.

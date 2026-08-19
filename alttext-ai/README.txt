@@ -4,10 +4,10 @@ Donate link: https://alttext.ai/
 Tags: image alt text, AI,  accessibility, alternative text, image to text
 Requires PHP: 7.4
 Requires at least: 4.7
-Tested up to: 6.9
-Stable tag: 1.10.36
+Tested up to: 7.0
+Stable tag: 1.10.37
 WC requires at least: 3.3
-WC tested up to: 10.1
+WC tested up to: 11.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 Terms of use: https://alttext.ai/terms
@@ -72,6 +72,13 @@ Added support for SEOPress keywords.
 We now integrate Yoast, AllInOne, and RankMath focus keyphrases for alt text.
 
 == Changelog ==
+
+= 1.10.37 - 2026-08-19 =
+* NEW: Option to remove the space between your custom prefix/suffix and the generated alt text, so you can wrap alt text in parentheses or brackets.
+* NEW: The Generate button now appears in WordPress's "Image details" panel - the one that opens when you click an image already placed in a post and hit the pencil icon.
+* Improved: The "file not found" setting is now labeled to match what it does. These images are always skipped; the checkbox controls whether each one is recorded in the error log.
+* Improved: Connect to AltText.ai now appears above the API key field on the settings page, so the one-click option comes first.
+* Fixed: The History screen no longer reports "Updated!" when a save actually failed.
 
 = 1.10.36 - 2026-07-22 =
 * NEW: Connect to AltText.ai in one click — link your account from the settings page without copying and pasting an API key.

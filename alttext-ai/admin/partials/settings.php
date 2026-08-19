@@ -161,6 +161,25 @@
       <div class="">
         <div class="pb-12 mt-4 space-y-8 sm:pb-0 sm:space-y-0 sm:border-t">
 
+          <?php if ( ! ATAI_Utility::get_api_key() ) : ?>
+          <div class="sm:grid sm:grid-cols-3 sm:gap-4 sm:items-start sm:py-4">
+            <label class="block text-sm font-medium leading-6 text-gray-900 sm:pt-1.5"><?php esc_html_e( 'Connect Account', 'alttext-ai' ); ?></label>
+            <div class="mt-2 sm:col-span-2 sm:mt-0">
+              <a
+                href="<?php echo esc_url( ATAI_Connect_Service::get_connect_url() ); ?>"
+                class="atai-button blue relative no-underline cursor-pointer shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 whitespace-nowrap"
+              ><?php esc_html_e( 'Connect to AltText.ai', 'alttext-ai' ); ?></a>
+              <div class="mt-4 max-w-lg">
+                <div class="bg-gray-900/15 p-px rounded-lg">
+                  <p class="py-2 px-4 leading-relaxed bg-gray-100 rounded-lg sm:p-4 m-0">
+                  <?php esc_html_e( 'Connect your AltText.ai account without leaving WordPress.', 'alttext-ai' ); ?>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <?php endif; ?>
+
           <div class="sm:grid sm:grid-cols-3 sm:gap-4 sm:items-start sm:py-4">
             <label for="username" class="block text-sm font-medium leading-6 text-gray-900 sm:pt-1.5"><?php esc_html_e( 'API Key', 'alttext-ai' ); ?></label>
             <div class="mt-2 sm:col-span-2 sm:mt-0">
@@ -256,25 +275,6 @@
               </div>
             </div>
           </div>
-
-          <?php if ( ! ATAI_Utility::get_api_key() ) : ?>
-          <div class="sm:grid sm:grid-cols-3 sm:gap-4 sm:items-start sm:py-4">
-            <label class="block text-sm font-medium leading-6 text-gray-900 sm:pt-1.5"><?php esc_html_e( 'Connect Account', 'alttext-ai' ); ?></label>
-            <div class="mt-2 sm:col-span-2 sm:mt-0">
-              <a
-                href="<?php echo esc_url( ATAI_Connect_Service::get_connect_url() ); ?>"
-                class="atai-button blue relative no-underline cursor-pointer shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 whitespace-nowrap"
-              ><?php esc_html_e( 'Connect to AltText.ai', 'alttext-ai' ); ?></a>
-              <div class="mt-4 max-w-lg">
-                <div class="bg-gray-900/15 p-px rounded-lg">
-                  <p class="py-2 px-4 leading-relaxed bg-gray-100 rounded-lg sm:p-4 m-0">
-                  <?php esc_html_e( 'Connect your AltText.ai account without leaving WordPress.', 'alttext-ai' ); ?>
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-          <?php endif; ?>
 
           <div class="sm:grid sm:grid-cols-3 sm:gap-4 sm:items-start sm:py-4">
             <label for="atai_lang" class="block text-sm font-medium leading-6 text-gray-900 sm:pt-1.5"><?php esc_html_e( 'Alt Text Language', 'alttext-ai' ); ?></label>
@@ -447,6 +447,21 @@
                     >
                   </div>
                 </div>
+                <div class="flex relative gap-x-3">
+                  <div class="flex items-center h-6">
+                    <input
+                      id="atai_alt_affix_no_space"
+                      name="atai_alt_affix_no_space"
+                      type="checkbox"
+                      value="yes"
+                      class="w-4 h-4 rounded border-gray-300 checked:bg-white text-primary-600 focus:ring-primary-600"
+                      <?php checked( 'yes', ATAI_Utility::get_setting( 'atai_alt_affix_no_space' ) ); ?>
+                    >
+                  </div>
+                  <div class="-mt-1 text-sm leading-6">
+                    <label for="atai_alt_affix_no_space" class="font-medium text-gray-900"><?php esc_html_e( 'Attach the prefix and suffix directly to the alt text, with no space.', 'alttext-ai' ); ?></label>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -536,9 +551,9 @@
                     >
                   </div>
                   <div class="-mt-1 text-sm leading-6">
-                    <label for="atai_skip_filenotfound" class="font-medium text-gray-900"><?php esc_html_e( 'Skip image files unable to be found on the server.', 'alttext-ai' ); ?></label>
+                    <label for="atai_skip_filenotfound" class="font-medium text-gray-900"><?php esc_html_e( 'Log image files unable to be found on the server.', 'alttext-ai' ); ?></label>
                     <p class="mt-1 text-gray-500">
-                      Useful if WordPress references old images which have been deleted.
+                      <?php esc_html_e( 'These images are always skipped. Turn this on to record each one in the error log, which is useful if WordPress references old images that have been deleted.', 'alttext-ai' ); ?>
                     </p>
                   </div>
                 </div>

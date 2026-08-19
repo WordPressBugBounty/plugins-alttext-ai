@@ -15,7 +15,7 @@
  * Plugin Name:       AltText.ai
  * Plugin URI:        https://alttext.ai/product
  * Description:       Automatically generate image alt text with AltText.ai.
- * Version:           1.10.36
+ * Version:           1.10.37
  * Author:            AltText.ai
  * Author URI:        https://alttext.ai
  * License:           GPL-2.0+
@@ -23,6 +23,10 @@
  * Text Domain:       alttext-ai
  * Domain Path:       /languages
  * Requires PHP:      7.4
+ * Requires at least: 4.7
+ * Tested up to:      7.0
+ * WC requires at least: 3.3
+ * WC tested up to:   11.0
  */
 
 // If this file is called directly, abort.
@@ -33,7 +37,7 @@ if ( ! defined( 'WPINC' ) ) {
 /**
  * Current plugin version.
  */
-define( 'ATAI_VERSION', '1.10.36' );
+define( 'ATAI_VERSION', '1.10.37' );
 
 /**
  * Constant to save the value of the plugin path.
@@ -82,6 +86,17 @@ function deactivate_atai() {
 
 register_activation_hook( __FILE__, 'activate_atai' );
 register_deactivation_hook( __FILE__, 'deactivate_atai' );
+
+/**
+ * Declare compatibility with WooCommerce High-Performance Order Storage.
+ *
+ * Only product posts are read for image context; order data is never touched.
+ */
+add_action( 'before_woocommerce_init', function () {
+	if ( class_exists( \Automattic\WooCommerce\Utilities\FeaturesUtil::class ) ) {
+		\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, true );
+	}
+} );
 
 /**
  * The core plugin class that is used to define internationalization,

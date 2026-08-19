@@ -496,6 +496,15 @@ class ATAI_Settings {
 
     register_setting(
 			'atai-settings',
+      'atai_alt_affix_no_space',
+      array(
+        'sanitize_callback' => array( $this, 'sanitize_yes_no_checkbox' ),
+        'default'           => 'no',
+      )
+    );
+
+    register_setting(
+			'atai-settings',
       'atai_gpt_prompt',
       array(
         'sanitize_callback' => array( $this, 'sanitize_gpt_prompt' ),
@@ -728,6 +737,7 @@ class ATAI_Settings {
       'atai_ecomm_title'            => 'no',
       'atai_alt_prefix'             => '',
       'atai_alt_suffix'             => '',
+      'atai_alt_affix_no_space'     => 'no',
       'atai_gpt_prompt'             => '',
       'atai_type_extensions'        => '',
       'atai_excluded_post_types'    => '',

@@ -880,6 +880,7 @@
       const response = await editHistoryAJAX(attachmentId, altText);
       if (response.status !== 'success') {
         alert(__('Unable to update alt text for this image.', 'alttext-ai'));
+        return; // a failed save must not also show the success badge
       }
 
       const successEl = document.getElementById('edit-history-success-' + attachmentId);
@@ -1383,10 +1384,28 @@
         window.location.href = wp_atai.settings_page_url + '&api_key_missing=1';
       }
 
-      const titleEl = (context == 'single') ? document.getElementById('title') : document.querySelector('[data-setting="title"] input');
-      const captionEl = (context == 'single') ? document.getElementById('attachment_caption') : document.querySelector('[data-setting="caption"] textarea');
-      const descriptionEl = (context == 'single') ? document.getElementById('attachment_content') : document.querySelector('[data-setting="description"] textarea');
-      const altTextEl = (context == 'single') ? document.getElementById('attachment_alt') : document.querySelector('[data-setting="alt"] textarea');
+      let titleEl = null;
+      let captionEl = null;
+      let descriptionEl = null;
+      let altTextEl = null;
+
+      if (context == 'single') {
+        titleEl = document.getElementById('title');
+        captionEl = document.getElementById('attachment_caption');
+        descriptionEl = document.getElementById('attachment_content');
+        altTextEl = document.getElementById('attachment_alt');
+      } else if (context == 'image-details') {
+        // This panel carries data-setting on the field itself, and its title/caption edit the
+        // markup in the post body rather than the attachment, so only alt is safe to write back
+        const panel = button.closest('.image-details') || document;
+        altTextEl = panel.querySelector('[data-setting="alt"]');
+      } else {
+        titleEl = document.querySelector('[data-setting="title"] input');
+        captionEl = document.querySelector('[data-setting="caption"] textarea');
+        descriptionEl = document.querySelector('[data-setting="description"] textarea');
+        altTextEl = document.querySelector('[data-setting="alt"] textarea');
+      }
+
       const keywords = keywordsCheckbox.checked ? extractKeywords(keywordsTextField.value) : [];
 
       // Hide notice
@@ -1400,9 +1419,16 @@
 
       // Update alt text in DOM
       if (response.status === 'success') {
-        altTextEl.value = response.alt_text;
+        if (altTextEl) {
+          altTextEl.value = response.alt_text;
 
-        if (wp_atai.should_update_title === 'yes') {
+          if (context == 'image-details') {
+            // Backbone only reads this panel's fields on change; without it the alt never reaches the post
+            altTextEl.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+        }
+
+        if (titleEl && wp_atai.should_update_title === 'yes') {
           titleEl.value = response.alt_text;
 
           if (context == 'single') {
@@ -1411,11 +1437,11 @@
           }
         }
 
-        if (wp_atai.should_update_caption === 'yes') {
+        if (captionEl && wp_atai.should_update_caption === 'yes') {
           captionEl.value = response.alt_text;
         }
 
-        if (wp_atai.should_update_description === 'yes') {
+        if (descriptionEl && wp_atai.should_update_description === 'yes') {
           descriptionEl.value = response.alt_text;
         }
 
@@ -1467,7 +1493,7 @@
 
       // 2. Try after alt text input/textarea
       if (!injected) {
-        const altInput = container.querySelector('[data-setting="alt"] input, [data-setting="alt"] textarea');
+        const altInput = container.querySelector('[data-setting="alt"] input, [data-setting="alt"] textarea, input[data-setting="alt"], textarea[data-setting="alt"]');
         if (altInput && altInput.parentNode) {
           button = createGenerateButton('atai-generate-button', attachmentId, context);
           altInput.parentNode.insertBefore(button, altInput.nextSibling);
@@ -1926,6 +1952,33 @@
     });
   }
 
+  /**
+   * Add the generate button to the "Image details" panel.
+   *
+   * WordPress opens this separate view for an image already placed in a post body. It is not
+   * wp.media.view.Attachment.Details, so extendMediaTemplate above never reaches it.
+   */
+  function extendImageDetailsTemplate() {
+    const previousImageDetails = wp.media.view.ImageDetails;
+
+    wp.media.view.ImageDetails = previousImageDetails.extend({
+      postRender: function () {
+        previousImageDetails.prototype.postRender.apply(this, arguments);
+
+        // the panel's model is a PostImage wrapping the attachment, so the id sits one level down
+        const attachmentId = this.model.attachment ? this.model.attachment.get('id') : this.model.get('attachment_id');
+        const container = this.$el ? this.$el[0] : null;
+
+        // an image embedded by bare URL has no attachment to generate against
+        if (!attachmentId || !container) {
+          return;
+        }
+
+        injectGenerateButton(container, attachmentId, 'image-details');
+      }
+    });
+  }
+
   function showUrlAccessErrorNotification(message) {
     // Stop bulk processing
     window.atai.setProcessingState(false);
@@ -2010,6 +2063,12 @@
     }
 
     // Use a small delay to ensure WordPress media is fully initialized
-    setTimeout(extendMediaTemplate, 500);
+    setTimeout(() => {
+      extendMediaTemplate();
+
+      if (wp?.media?.view?.ImageDetails) {
+        extendImageDetailsTemplate();
+      }
+    }, 500);
   });
 })();

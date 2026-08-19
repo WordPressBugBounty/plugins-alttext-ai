@@ -31,6 +31,7 @@ delete_option( 'atai_update_caption' );
 delete_option( 'atai_update_description' );
 delete_option( 'atai_alt_prefix' );
 delete_option( 'atai_alt_suffix' );
+delete_option( 'atai_alt_affix_no_space' );
 delete_option( 'atai_type_extensions' );
 delete_option( 'atai_gpt_prompt' );
 delete_option( 'atai_no_credit_warning' );
