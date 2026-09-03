@@ -1,5 +1,8 @@
 *** AltText.ai Changelog ***
 
+2026-09-02 - version 1.10.38
+* Fixed: Images that failed to download because your host was slow or briefly unreachable are now retried automatically instead of being skipped on the first attempt.
+
 2026-08-19 - version 1.10.37
 * NEW: Option to remove the space between your custom prefix/suffix and the generated alt text, so you can wrap alt text in parentheses or brackets.
 * NEW: The Generate button now appears in WordPress's "Image details" panel - the one that opens when you click an image already placed in a post and hit the pencil icon.

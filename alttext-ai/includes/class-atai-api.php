@@ -10,6 +10,27 @@
  * @subpackage ATAI/includes
  */
 
+if ( ! function_exists( 'atai_api_error_code' ) ) {
+  /**
+   * Read the structured error code from a decoded API response.
+   *
+   * @param mixed $response_body Decoded API response body.
+   *
+  * @return string|null
+  */
+  function atai_api_error_code( $response_body ) {
+    if (
+      ! is_array( $response_body ) ||
+      ! isset( $response_body['error_code'] ) ||
+      ! is_string( $response_body['error_code'] )
+    ) {
+      return null;
+    }
+
+    return $response_body['error_code'];
+  }
+}
+
 /**
  * The API management class.
  *
@@ -142,10 +163,17 @@ class ATAI_API {
    * @since 1.0.0
    * @access public
    *
-   * @param string  $attachment_id  ID of the image to request alt text for (or NULL to use just URL).
-   * @param string  $attachment_url  URL of the image to request alt text for.
+   * @param string      $attachment_id  ID of the image to request alt text for (or NULL to use just URL).
+   * @param string      $attachment_url URL of the image to request alt text for.
+   * @param array       $api_options    API request options.
+   * @param int|null    $response_code  HTTP response code (passed by reference).
+   * @param string|null $error_code     Structured API error code (passed by reference).
+   *
+   * @return array|string|false
    */
-  public function create_image( $attachment_id, $attachment_url, $api_options, &$response_code ) {
+  public function create_image( $attachment_id, $attachment_url, $api_options, &$response_code, &$error_code = null ) {
+    $error_code = null;
+
     if ( empty($attachment_id) || ATAI_Utility::get_setting( 'atai_public' ) === 'yes' ) {
       // If the site is public, get ALT by sending the image URL to the server
       $body = array(
@@ -237,6 +265,8 @@ class ATAI_API {
     }
 
     $response_body = json_decode( wp_remote_retrieve_body( $response ), true );
+
+    $error_code = atai_api_error_code( $response_body );
 
     if ( $response_code == '422' ) {
       $error_message = '';

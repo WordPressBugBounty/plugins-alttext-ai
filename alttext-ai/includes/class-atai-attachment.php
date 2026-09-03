@@ -221,14 +221,19 @@ class ATAI_Attachment {
     $time_budget = apply_filters( 'atai_retry_time_budget', 12 ); // Maximum seconds for all retries
 
     for ($attempt = 0; $attempt < $max_retries; $attempt++) {
-      $response = $api->create_image( $attachment_id, $attachment_url, $api_options, $response_code );
+      $api_error_code = null;
+      $response = $api->create_image( $attachment_id, $attachment_url, $api_options, $response_code, $api_error_code );
+
+      // The API uses 422 for all image errors, but its structured error code
+      // distinguishes fetch failures from permanent validation failures.
+      $retryable_fetch_failure = 422 === (int) $response_code && 'download_failed' === $api_error_code;
 
       // Hard-fail on unrecoverable client/auth errors (no retry)
       $hard_fail_codes = apply_filters( 'atai_hard_fail_http_codes', array( 400, 401, 403, 404, 422 ) );
       if ( ! is_array( $hard_fail_codes ) ) {
           $hard_fail_codes = array( 400, 401, 403, 404, 422 ); // Reset to safe default if filter returns non-array
       }
-      if ( $response_code !== null && in_array( (int) $response_code, $hard_fail_codes, true ) ) {
+      if ( ! $retryable_fetch_failure && $response_code !== null && in_array( (int) $response_code, $hard_fail_codes, true ) ) {
           break; // Exit immediately on unrecoverable errors
       }
 
@@ -237,7 +242,7 @@ class ATAI_Attachment {
       if ( ! is_array( $retryable_codes ) ) {
           $retryable_codes = array( 429, 503, 504, 408 ); // Reset to safe default if filter returns non-array
       }
-      $retryable = in_array( (int) $response_code, $retryable_codes, true );
+      $retryable = $retryable_fetch_failure || in_array( (int) $response_code, $retryable_codes, true );
 
       if ( ! $retryable ) {
           break; // Exit if not a retryable error
