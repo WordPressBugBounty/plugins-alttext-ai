@@ -80,12 +80,9 @@ class ATAI_Attachment {
       return $lang;
     }
 
-    // Try base language fallback whenever there's a hyphen (handles multi-subtag codes like zh-Hant-HK)
-    if ( false !== strpos( $lang, '-' ) ) {
-      $base = explode( '-', $lang, 2 )[0];
-      if ( isset( $supported_languages[ $base ] ) ) {
-        return $base;
-      }
+    $base = ATAI_Utility::supported_lang_or_base( $lang );
+    if ( isset( $base ) ) {
+      return $base;
     }
 
     // Unsupported language - fall back to auto-detection

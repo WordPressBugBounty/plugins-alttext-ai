@@ -421,16 +421,45 @@ SQL;
         $language = $aliases[ $language ];
       }
     }
-    if ( isset($language) && ! array_key_exists( $language, ATAI_Utility::supported_languages() ) ) {
-      $language = NULL;
+    $site_language = ATAI_Utility::get_setting( 'atai_lang', self::get_default_language() );
+    if ( isset( $language ) ) {
+      $language = self::supported_lang_or_base( $language, $site_language );
     }
 
     if ( ! isset( $language ) ) {
-      $language = ATAI_Utility::get_setting( 'atai_lang', self::get_default_language() );
+      $language = $site_language;
     }
 
     return $language;
 	}
+
+  /**
+   * Return the language if supported, else its base language (fr-ca → fr), else NULL.
+   *
+   * @since 1.10.39
+   */
+  public static function supported_lang_or_base( $language, $preferred = NULL ) {
+    $supported = self::supported_languages();
+    if ( array_key_exists( $language, $supported ) ) {
+      return $language;
+    }
+
+    $base = preg_split( '/[-_]/', $language, 2 )[0];
+    if ( $base === $language || ! array_key_exists( $base, $supported ) ) {
+      return NULL;
+    }
+
+    // a regional site default (en-gb) beats the generic base (en) for a sibling region (en-au)
+    if ( is_string( $preferred ) ) {
+      $preferred = strtolower( $preferred );
+      $preferred = self::bcp47_aliases()[ $preferred ] ?? $preferred;
+      if ( array_key_exists( $preferred, $supported ) && preg_split( '/[-_]/', $preferred, 2 )[0] === $base ) {
+        return $preferred;
+      }
+    }
+
+    return $base;
+  }
 
   /**
    * Get a setting with network fallback.
