@@ -15,7 +15,7 @@
  * Plugin Name:       AltText.ai
  * Plugin URI:        https://alttext.ai/product
  * Description:       Automatically generate image alt text with AltText.ai.
- * Version:           1.10.39
+ * Version:           1.10.40
  * Author:            AltText.ai
  * Author URI:        https://alttext.ai
  * License:           GPL-2.0+
@@ -37,7 +37,7 @@ if ( ! defined( 'WPINC' ) ) {
 /**
  * Current plugin version.
  */
-define( 'ATAI_VERSION', '1.10.39' );
+define( 'ATAI_VERSION', '1.10.40' );
 
 /**
  * Constant to save the value of the plugin path.

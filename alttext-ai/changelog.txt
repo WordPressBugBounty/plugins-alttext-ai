@@ -1,5 +1,8 @@
 *** AltText.ai Changelog ***
 
+2026-09-29 - version 1.10.40
+* Improved: The custom prompt setting is now called Final Pass: run your own prompt on the generated alt text. The setting, its help text, and its docs link no longer mention ChatGPT; your saved prompt is unchanged.
+
 2026-09-23 - version 1.10.39
 * Fixed: Multilingual sites using regional languages in Polylang or WPML (like French (Canada)) now get alt text in that language instead of the site's default language.
 

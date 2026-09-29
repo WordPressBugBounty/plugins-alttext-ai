@@ -859,7 +859,7 @@ class ATAI_Settings {
   }
 
   /**
-   * Sanitizes a custom ChatGPT prompt to ensure it contains the {{AltText} macro and isn't too long.
+   * Sanitizes a Final Pass prompt to ensure it contains the {{AltText} macro and isn't too long.
    *
    * @since 1.2.4
    * @access public

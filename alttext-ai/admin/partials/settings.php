@@ -605,13 +605,13 @@
           </div>
 
           <div class="sm:grid sm:grid-cols-3 sm:gap-4 sm:py-4">
-            <div class="text-sm font-semibold leading-6 text-gray-900" aria-hidden="true"><?php esc_html_e( 'Chat GPT:', 'alttext-ai' ); ?></div>
+            <div class="text-sm font-semibold leading-6 text-gray-900" aria-hidden="true"><?php esc_html_e( 'Final Pass:', 'alttext-ai' ); ?></div>
             <div class="mt-4 sm:col-span-2 sm:mt-0">
               <div class="space-y-6 max-w-lg">
                 <div>
                   <label for="atai_gpt_prompt" class="block text-sm leading-6 text-gray-600">
-                    <?php esc_html_e( 'Use a ChatGPT prompt to modify any generated alt text.', 'alttext-ai' ); ?>
-                    <a href="https://alttext.ai/docs/webui/adding-images/#using-chatgpt-modification" target="blank" rel="noopener" class="font-medium text-primary-600 hover:text-primary-500">Learn more</a>.
+                    <?php esc_html_e( 'Run your own prompt on any generated alt text.', 'alttext-ai' ); ?>
+                    <a href="https://alttext.ai/docs/webui/adding-images/#using-final-pass" target="blank" rel="noopener" class="font-medium text-primary-600 hover:text-primary-500">Learn more</a>.
                   </label>
                   <div class="mt-2">
                     <textarea
@@ -624,7 +624,7 @@
                     ><?php echo esc_html ( ATAI_Utility::get_setting( 'atai_gpt_prompt' ) ); ?></textarea>
                   </div>
                   <p class="mt-1 text-gray-500">
-                    <?php esc_html_e( 'Your prompt MUST include the macro {{AltText}}, which will be substituted with the generated alt text, then sent to ChatGPT.', 'alttext-ai' ); ?>
+                    <?php esc_html_e( 'Your prompt MUST include the macro {{AltText}}, which will be substituted with the generated alt text. The result replaces the alt text.', 'alttext-ai' ); ?>
                   </p>
                 </div>
               </div>

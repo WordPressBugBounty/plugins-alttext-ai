@@ -5,7 +5,7 @@ Tags: image alt text, AI,  accessibility, alternative text, image to text
 Requires PHP: 7.4
 Requires at least: 4.7
 Tested up to: 7.0
-Stable tag: 1.10.39
+Stable tag: 1.10.40
 WC requires at least: 3.3
 WC tested up to: 11.0
 License: GPLv2 or later
@@ -26,7 +26,7 @@ AltText.ai automatically generates alt text for your images.
 
 **Keyword-rich alt text:** Seamlessly integrates focus keyphrases from popular SEO plugins, including **Yoast SEO, Rank Math, All in One SEO, SEOPress, The SEO Framework, SmartCrawl, and Squirrly SEO**, ensuring natural language optimization.
 
-**Chat GPT:** Use your own custom ChatGPT prompt to automatically modify the generated alt text.
+**Final Pass:** Run your own prompt on the generated alt text to control its final wording.
 
 **Multiple Languages:** Over 130 languages for alternative text. Support for WPML and Polylang translations.
 
@@ -72,6 +72,9 @@ Added support for SEOPress keywords.
 We now integrate Yoast, AllInOne, and RankMath focus keyphrases for alt text.
 
 == Changelog ==
+
+= 1.10.40 - 2026-09-29 =
+* Improved: The custom prompt setting is now called Final Pass: run your own prompt on the generated alt text. The setting, its help text, and its docs link no longer mention ChatGPT; your saved prompt is unchanged.
 
 = 1.10.39 - 2026-09-23 =
 * Fixed: Multilingual sites using regional languages in Polylang or WPML (like French (Canada)) now get alt text in that language instead of the site's default language.
