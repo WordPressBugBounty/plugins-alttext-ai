@@ -153,6 +153,7 @@ class ATAI {
 
 		// Page builder handlers
 		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/builders/class-atai-builder-yootheme.php';
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/builders/class-atai-builder-divi.php';
 
 		/**
 		 * The class responsible for defining all actions that occur in the admin area.

@@ -366,7 +366,7 @@ class ATAI_Post {
           // If the alt text is empty, generate it
           if ( $overwrite || empty( $alt_text ) ) {
             $should_generate = true;
-            $alt_text = $atai_attachment->generate_alt( $attachment_id, null, array( 'keywords' => $keywords ) );
+            $alt_text = $atai_attachment->generate_alt( $attachment_id, null, array( 'keywords' => $keywords, 'explicit_post_id' => $post_id ) );
           }
         } elseif ( $process_external ) {
           // Extract alt text from the image tag
@@ -374,7 +374,7 @@ class ATAI_Post {
 
           if ( $overwrite || empty( $alt_text ) ) {
             $should_generate = true;
-            $alt_text = $atai_attachment->generate_alt( null, $img_url_absolute, array( 'keywords' => $keywords ) );
+            $alt_text = $atai_attachment->generate_alt( null, $img_url_absolute, array( 'keywords' => $keywords, 'explicit_post_id' => $post_id ) );
           }
         }
 
@@ -398,7 +398,7 @@ class ATAI_Post {
       $src_regex = sprintf('/<img .*?(%s="([^"]*?)")[^>]*?>/i', $img_src_attr);
       $updated_content = preg_replace_callback(
         $src_regex,
-        function( $matches ) use ( $atai_attachment, $overwrite, $process_external, $keywords, &$total_images_found, &$num_alttext_generated, &$no_credits ) {
+        function( $matches ) use ( $atai_attachment, $overwrite, $process_external, $keywords, $post_id, &$total_images_found, &$num_alttext_generated, &$no_credits ) {
           $img_tag = $matches[0];
           $img_url = $img_url_original = $matches[2]; // The src URL is captured in the second group.
 
@@ -432,7 +432,7 @@ class ATAI_Post {
             // If the alt text is empty, generate it
             if ( $overwrite || empty( $alt_text ) ) {
               $should_generate = true;
-              $alt_text = $atai_attachment->generate_alt( $attachment_id, null, array( 'keywords' => $keywords ) );
+              $alt_text = $atai_attachment->generate_alt( $attachment_id, null, array( 'keywords' => $keywords, 'explicit_post_id' => $post_id ) );
             }
           } elseif ( $process_external ) {
             // Extract alt text from the image tag
@@ -441,7 +441,7 @@ class ATAI_Post {
 
             if ( $overwrite || empty( $alt_text ) ) {
               $should_generate = true;
-              $alt_text = $atai_attachment->generate_alt( null, $img_url_original, array( 'keywords' => $keywords ) );
+              $alt_text = $atai_attachment->generate_alt( null, $img_url_original, array( 'keywords' => $keywords, 'explicit_post_id' => $post_id ) );
             }
           }
 
@@ -537,6 +537,7 @@ class ATAI_Post {
   private function process_builder_images( $post_id, $overwrite, $process_external, $keywords ) {
     $handlers = apply_filters( 'atai_page_builder_handlers', array(
       'yootheme' => 'ATAI_Builder_YooTheme',
+      'divi'     => 'ATAI_Builder_Divi',
     ) );
 
     $total_images_found = 0;
@@ -586,14 +587,14 @@ class ATAI_Post {
 
           if ( $overwrite || empty( $alt_text ) ) {
             $should_generate = true;
-            $alt_text = $atai_attachment->generate_alt( $image['attachment_id'], null, array( 'keywords' => $keywords ) );
+            $alt_text = $atai_attachment->generate_alt( $image['attachment_id'], null, array( 'keywords' => $keywords, 'explicit_post_id' => $post_id ) );
           }
         } elseif ( $process_external ) {
           $alt_text = $image['current_alt'];
 
           if ( $overwrite || empty( $alt_text ) ) {
             $should_generate = true;
-            $alt_text = $atai_attachment->generate_alt( null, $image['url'], array( 'keywords' => $keywords ) );
+            $alt_text = $atai_attachment->generate_alt( null, $image['url'], array( 'keywords' => $keywords, 'explicit_post_id' => $post_id ) );
           }
         }
 

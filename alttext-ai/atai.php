@@ -15,7 +15,7 @@
  * Plugin Name:       AltText.ai
  * Plugin URI:        https://alttext.ai/product
  * Description:       Automatically generate image alt text with AltText.ai.
- * Version:           1.10.40
+ * Version:           1.10.41
  * Author:            AltText.ai
  * Author URI:        https://alttext.ai
  * License:           GPL-2.0+
@@ -24,9 +24,9 @@
  * Domain Path:       /languages
  * Requires PHP:      7.4
  * Requires at least: 4.7
- * Tested up to:      7.0
+ * Tested up to:      7.1
  * WC requires at least: 3.3
- * WC tested up to:   11.0
+ * WC tested up to:   11.1.0
  */
 
 // If this file is called directly, abort.
@@ -37,7 +37,7 @@ if ( ! defined( 'WPINC' ) ) {
 /**
  * Current plugin version.
  */
-define( 'ATAI_VERSION', '1.10.40' );
+define( 'ATAI_VERSION', '1.10.41' );
 
 /**
  * Constant to save the value of the plugin path.

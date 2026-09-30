@@ -1,5 +1,10 @@
 *** AltText.ai Changelog ***
 
+2026-09-30 - version 1.10.41
+* Added: Divi 5 support. Alt text is now generated for images and galleries built with the Divi 5 page builder.
+* Improved: Refresh Alt Text now uses your SEO focus keyphrase for images that aren't attached to a post, including images in page builders.
+* Improved: Tested with WordPress 7.1 and WooCommerce 11.1.
+
 2026-09-29 - version 1.10.40
 * Improved: The custom prompt setting is now called Final Pass: run your own prompt on the generated alt text. The setting, its help text, and its docs link no longer mention ChatGPT; your saved prompt is unchanged.
 

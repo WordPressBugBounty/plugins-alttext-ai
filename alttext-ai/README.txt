@@ -4,10 +4,10 @@ Donate link: https://alttext.ai/
 Tags: image alt text, AI,  accessibility, alternative text, image to text
 Requires PHP: 7.4
 Requires at least: 4.7
-Tested up to: 7.0
-Stable tag: 1.10.40
+Tested up to: 7.1
+Stable tag: 1.10.41
 WC requires at least: 3.3
-WC tested up to: 11.0
+WC tested up to: 11.1.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 Terms of use: https://alttext.ai/terms
@@ -72,6 +72,11 @@ Added support for SEOPress keywords.
 We now integrate Yoast, AllInOne, and RankMath focus keyphrases for alt text.
 
 == Changelog ==
+
+= 1.10.41 - 2026-09-30 =
+* Added: Divi 5 support. Alt text is now generated for images and galleries built with the Divi 5 page builder.
+* Improved: Refresh Alt Text now uses your SEO focus keyphrase for images that aren't attached to a post, including images in page builders.
+* Improved: Tested with WordPress 7.1 and WooCommerce 11.1.
 
 = 1.10.40 - 2026-09-29 =
 * Improved: The custom prompt setting is now called Final Pass: run your own prompt on the generated alt text. The setting, its help text, and its docs link no longer mention ChatGPT; your saved prompt is unchanged.
