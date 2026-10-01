@@ -5,7 +5,7 @@ Tags: image alt text, AI,  accessibility, alternative text, image to text
 Requires PHP: 7.4
 Requires at least: 4.7
 Tested up to: 7.1
-Stable tag: 1.10.41
+Stable tag: 1.10.42
 WC requires at least: 3.3
 WC tested up to: 11.1.0
 License: GPLv2 or later
@@ -72,6 +72,9 @@ Added support for SEOPress keywords.
 We now integrate Yoast, AllInOne, and RankMath focus keyphrases for alt text.
 
 == Changelog ==
+
+= 1.10.42 - 2026-10-01 =
+* Security: Refresh Alt Text now checks that you're allowed to edit a post before it changes the post's content, including from the bulk action on the Posts screen. Thanks to Webbernaut and Wordfence for the responsible disclosure.
 
 = 1.10.41 - 2026-09-30 =
 * Added: Divi 5 support. Alt text is now generated for images and galleries built with the Divi 5 page builder.

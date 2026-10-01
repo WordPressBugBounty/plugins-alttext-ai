@@ -1,5 +1,8 @@
 *** AltText.ai Changelog ***
 
+2026-10-01 - version 1.10.42
+* Security: Refresh Alt Text now checks that you're allowed to edit a post before it changes the post's content, including from the bulk action on the Posts screen. Thanks to Webbernaut and Wordfence for the responsible disclosure.
+
 2026-09-30 - version 1.10.41
 * Added: Divi 5 support. Alt text is now generated for images and galleries built with the Divi 5 page builder.
 * Improved: Refresh Alt Text now uses your SEO focus keyphrase for images that aren't attached to a post, including images in page builders.

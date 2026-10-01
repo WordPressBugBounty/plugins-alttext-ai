@@ -274,6 +274,14 @@ class ATAI_Post {
     if ( $is_ajax ) {
       check_ajax_referer( 'atai_enrich_post_content', 'security' );
       $post_id = intval( $_POST['post_id'] ?? 0 );
+
+      if ( ! current_user_can( 'edit_post', $post_id ) ) {
+        wp_send_json_error( array(
+          'status' => 'error',
+          'message' => __( 'You do not have permission to edit this post.', 'alttext-ai' )
+        ), 403 );
+      }
+
       $overwrite = filter_var($_REQUEST['overwrite'], FILTER_VALIDATE_BOOLEAN);
       $process_external = filter_var($_REQUEST['process_external'], FILTER_VALIDATE_BOOLEAN);
       $keywords = ( isset( $_REQUEST['keywords'] ) && is_array( $_REQUEST['keywords'] ) ) ? array_map( 'sanitize_text_field', $_REQUEST['keywords'] ) : [];
@@ -722,6 +730,11 @@ class ATAI_Post {
     $include_external = ATAI_Utility::get_setting( 'atai_bulk_refresh_external' ) === 'yes';
 
     foreach ( $items as $post_id ) {
+      // core checks only the screen-level edit_posts cap before handing custom bulk actions the raw ids
+      if ( ! current_user_can( 'edit_post', $post_id ) ) {
+        continue;
+      }
+
       $response = $this->enrich_post_content( $post_id, $overwrite, $include_external );
 
       if ( is_array( $response ) ) {
