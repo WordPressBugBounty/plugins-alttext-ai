@@ -1239,6 +1239,9 @@ SQL;
       unset( $options['respect_wpml_enabled_languages'] );
     }
 
+    $require_edit_permission = ! empty( $options['require_edit_permission'] );
+    unset( $options['require_edit_permission'] );
+
     if ( ! ATAI_Utility::has_wpml() ) {
       return $results;
     }
@@ -1263,6 +1266,12 @@ SQL;
 
       // Skip invalid or trashed
       if ( get_post_type( $translated_id ) !== 'attachment' || get_post_status( $translated_id ) === 'trash' ) {
+        $results['skipped']++;
+        $results['processed_ids'][ $translated_id ] = 'skipped';
+        continue;
+      }
+
+      if ( $require_edit_permission && ! current_user_can( 'edit_post', $translated_id ) ) {
         $results['skipped']++;
         $results['processed_ids'][ $translated_id ] = 'skipped';
         continue;
@@ -1301,6 +1310,9 @@ SQL;
       'processed_ids' => array(),
     );
 
+    $require_edit_permission = ! empty( $options['require_edit_permission'] );
+    unset( $options['require_edit_permission'] );
+
     if ( ! ATAI_Utility::has_polylang() ) {
       return $results;
     }
@@ -1336,6 +1348,12 @@ SQL;
 
       // Skip invalid or trashed
       if ( get_post_type( $translated_id ) !== 'attachment' || get_post_status( $translated_id ) === 'trash' ) {
+        $results['skipped']++;
+        $results['processed_ids'][ $translated_id ] = 'skipped';
+        continue;
+      }
+
+      if ( $require_edit_permission && ! current_user_can( 'edit_post', $translated_id ) ) {
         $results['skipped']++;
         $results['processed_ids'][ $translated_id ] = 'skipped';
         continue;
@@ -1547,6 +1565,9 @@ SQL;
         if ( isset( $final_skip_reasons['ineligible'] ) && $final_skip_reasons['ineligible'] > 0 ) {
           $reason_messages[] = sprintf(__('%d ineligible (size/format/settings)', 'alttext-ai'), $final_skip_reasons['ineligible']);
         }
+        if ( isset( $final_skip_reasons['not_permitted'] ) && $final_skip_reasons['not_permitted'] > 0 ) {
+          $reason_messages[] = sprintf(__('%d you do not have permission to edit', 'alttext-ai'), $final_skip_reasons['not_permitted']);
+        }
         if ( isset( $final_skip_reasons['api_error'] ) && $final_skip_reasons['api_error'] > 0 ) {
           $reason_messages[] = sprintf(__('%d API errors', 'alttext-ai'), $final_skip_reasons['api_error']);
         }
@@ -1580,6 +1601,21 @@ SQL;
 
       if ( defined( 'ATAI_BULK_DEBUG' ) ) {
         ATAI_Utility::log_error( sprintf("BulkGenerate: Attachment ID %d", $attachment_id) );
+      }
+
+      if ( ! current_user_can( 'edit_post', $attachment_id ) ) {
+        $images_skipped++;
+        $last_post_id = $attachment_id;
+        $skip_reasons['not_permitted'] = ( $skip_reasons['not_permitted'] ?? 0 ) + 1;
+
+        if ( $mode === 'bulk-select' ) {
+          $processed_ids[] = $attachment_id;
+        }
+
+        if ( ++$loop_count >= $query_limit ) {
+          break;
+        }
+        continue;
       }
 
       // Skip if already processed as WPML translation (prevents double-processing)
@@ -1703,8 +1739,9 @@ SQL;
         // Note: Translation stats are NOT added to main counters to keep success_count
         // aligned with process_count (primary attachments only)
         $wpml_results = $this->process_wpml_translations( $attachment_id, array(
-          'keywords'          => $keywords,
-          'negative_keywords' => $negative_keywords,
+          'keywords'                => $keywords,
+          'negative_keywords'       => $negative_keywords,
+          'require_edit_permission' => true,
         ) );
 
         // Track all WPML translation IDs to prevent double-processing later in the loop
@@ -1714,8 +1751,9 @@ SQL;
 
         // Process Polylang translations for successfully generated primary images
         $polylang_results = $this->process_polylang_translations( $attachment_id, array(
-          'keywords'          => $keywords,
-          'negative_keywords' => $negative_keywords,
+          'keywords'                => $keywords,
+          'negative_keywords'       => $negative_keywords,
+          'require_edit_permission' => true,
         ) );
 
         // Track all Polylang translation IDs to prevent double-processing later in the loop

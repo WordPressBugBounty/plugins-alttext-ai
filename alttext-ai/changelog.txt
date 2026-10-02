@@ -1,5 +1,11 @@
 *** AltText.ai Changelog ***
 
+2026-10-02 - version 1.10.44
+* Changed: Credited The Builder for responsibly disclosing the issue fixed in 1.10.43.
+
+2026-10-02 - version 1.10.43
+* Security: Bulk Generate now checks that you're allowed to edit each image before it generates or changes its alt text, so it skips images other users own that you can't edit. Thanks to The Builder for the responsible disclosure.
+
 2026-10-01 - version 1.10.42
 * Security: Refresh Alt Text now checks that you're allowed to edit a post before it changes the post's content, including from the bulk action on the Posts screen. Thanks to Webbernaut and Wordfence for the responsible disclosure.
 

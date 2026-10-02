@@ -5,7 +5,7 @@ Tags: image alt text, AI,  accessibility, alternative text, image to text
 Requires PHP: 7.4
 Requires at least: 4.7
 Tested up to: 7.1
-Stable tag: 1.10.42
+Stable tag: 1.10.44
 WC requires at least: 3.3
 WC tested up to: 11.1.0
 License: GPLv2 or later
@@ -72,6 +72,12 @@ Added support for SEOPress keywords.
 We now integrate Yoast, AllInOne, and RankMath focus keyphrases for alt text.
 
 == Changelog ==
+
+= 1.10.44 - 2026-10-02 =
+* Changed: Credited The Builder for responsibly disclosing the issue fixed in 1.10.43.
+
+= 1.10.43 - 2026-10-02 =
+* Security: Bulk Generate now checks that you're allowed to edit each image before it generates or changes its alt text, so it skips images other users own that you can't edit. Thanks to The Builder for the responsible disclosure.
 
 = 1.10.42 - 2026-10-01 =
 * Security: Refresh Alt Text now checks that you're allowed to edit a post before it changes the post's content, including from the bulk action on the Posts screen. Thanks to Webbernaut and Wordfence for the responsible disclosure.
