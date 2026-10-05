@@ -5,7 +5,7 @@ Tags: image alt text, AI,  accessibility, alternative text, image to text
 Requires PHP: 7.4
 Requires at least: 4.7
 Tested up to: 7.1
-Stable tag: 1.10.44
+Stable tag: 1.10.45
 WC requires at least: 3.3
 WC tested up to: 11.1.0
 License: GPLv2 or later
@@ -72,6 +72,9 @@ Added support for SEOPress keywords.
 We now integrate Yoast, AllInOne, and RankMath focus keyphrases for alt text.
 
 == Changelog ==
+
+= 1.10.45 - 2026-10-05 =
+* Added: wp alttext generate --wc-products and --wc-only-featured match the Bulk Generate WooCommerce filters.
 
 = 1.10.44 - 2026-10-02 =
 * Changed: Credited The Builder for responsibly disclosing the issue fixed in 1.10.43.

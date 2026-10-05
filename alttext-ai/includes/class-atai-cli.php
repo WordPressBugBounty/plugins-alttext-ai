@@ -64,10 +64,22 @@ class ATAI_CLI_Command {
 	 * [--porcelain]
 	 * : Output only the count of processed images (for scripting).
 	 *
+	 * [--wc-products]
+	 * : Only process images attached to WooCommerce products, like "Only process WooCommerce product images" in Bulk Generate.
+	 *
+	 * [--wc-only-featured]
+	 * : For each product, only process the main image and skip gallery images. Implies --wc-products.
+	 *
 	 * ## EXAMPLES
 	 *
 	 *     # Generate alt text for images missing it
 	 *     wp alttext generate
+	 *
+	 *     # Only WooCommerce product images
+	 *     wp alttext generate --wc-products
+	 *
+	 *     # Preview the main product image of each product, skipping gallery images
+	 *     wp alttext generate --wc-only-featured --dry-run
 	 *
 	 *     # Process first 100 images in batches of 5
 	 *     wp alttext generate --limit=100 --batch-size=5
@@ -91,6 +103,10 @@ class ATAI_CLI_Command {
 		$dry_run    = isset( $assoc_args['dry-run'] );
 		$porcelain  = isset( $assoc_args['porcelain'] );
 
+		// the dashboard only offers main-image-only together with products-only
+		$wc_only_featured = isset( $assoc_args['wc-only-featured'] );
+		$wc_products      = isset( $assoc_args['wc-products'] ) || $wc_only_featured;
+
 		// Ensure batch size is at least 1.
 		$batch_size = max( 1, $batch_size );
 
@@ -109,8 +125,14 @@ class ATAI_CLI_Command {
 		// Get eligible images.
 		if ( ! $porcelain ) {
 			WP_CLI::log( 'Scanning for eligible images...' );
+			if ( $wc_products ) {
+				WP_CLI::log( 'Filters: WooCommerce product images only' . ( $wc_only_featured ? ', main image only' : '' ) . '.' );
+				if ( ! post_type_exists( 'product' ) ) {
+					WP_CLI::warning( 'WooCommerce does not appear to be active (no "product" post type). Only images attached to product posts still stored in the database will be processed.' );
+				}
+			}
 		}
-		$images = $this->get_eligible_images( $limit, $force, $dry_run );
+		$images = $this->get_eligible_images( $limit, $force, $dry_run, $wc_products, $wc_only_featured );
 
 		if ( empty( $images ) ) {
 			if ( $porcelain ) {
@@ -281,11 +303,15 @@ class ATAI_CLI_Command {
 	 * @param int  $limit    Maximum number of images to return. -1 for all.
 	 * @param bool $force    Include images that already have alt text.
 	 * @param bool $dry_run  If true, skip side effects like metadata generation.
+	 * @param bool $wc_products      Only images attached to WooCommerce products.
+	 * @param bool $wc_only_featured Only each product's main image.
 	 *
 	 * @return array Array of attachment IDs.
 	 */
-	private function get_eligible_images( $limit, $force, $dry_run = false ) {
+	private function get_eligible_images( $limit, $force, $dry_run = false, $wc_products = false, $wc_only_featured = false ) {
 		global $wpdb;
+
+		$wc_scope = $this->get_wc_scope_sql( $wc_products, $wc_only_featured );
 
 		$attachment = new ATAI_Attachment();
 		$eligible   = array();
@@ -301,6 +327,7 @@ class ATAI_CLI_Command {
 				WHERE p.post_mime_type LIKE 'image/%'
 				  AND p.post_type = 'attachment'
 				  AND p.post_status = 'inherit'
+				  {$wc_scope}
 				ORDER BY p.ID ASC
 			";
 		} else {
@@ -314,6 +341,7 @@ class ATAI_CLI_Command {
 				  AND p.post_type = 'attachment'
 				  AND p.post_status = 'inherit'
 				  AND (pm.post_id IS NULL OR TRIM(COALESCE(pm.meta_value, '')) = '')
+				  {$wc_scope}
 				ORDER BY p.ID ASC
 			";
 		}
@@ -348,6 +376,21 @@ class ATAI_CLI_Command {
 		}
 
 		return $eligible;
+	}
+
+	// keep in sync with ATAI_Attachment::ajax_bulk_generate() so the CLI and dashboard select the same images
+	private function get_wc_scope_sql( $wc_products, $wc_only_featured ) {
+		global $wpdb;
+
+		$sql = '';
+		if ( $wc_products ) {
+			$sql .= " AND (EXISTS(SELECT 1 FROM {$wpdb->posts} p2 WHERE p2.ID = p.post_parent and p2.post_type = 'product'))";
+		}
+		if ( $wc_only_featured ) {
+			$sql .= " AND (EXISTS(SELECT 1 FROM {$wpdb->postmeta} pm2 WHERE pm2.post_id = p.post_parent and pm2.meta_key = '_thumbnail_id' and CAST(pm2.meta_value as UNSIGNED) = p.ID))";
+		}
+
+		return $sql;
 	}
 
 	/**

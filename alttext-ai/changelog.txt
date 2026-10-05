@@ -1,5 +1,8 @@
 *** AltText.ai Changelog ***
 
+2026-10-05 - version 1.10.45
+* Added: wp alttext generate --wc-products and --wc-only-featured match the Bulk Generate WooCommerce filters.
+
 2026-10-02 - version 1.10.44
 * Changed: Credited The Builder for responsibly disclosing the issue fixed in 1.10.43.
 
